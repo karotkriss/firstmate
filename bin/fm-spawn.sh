@@ -45,8 +45,10 @@
 #   provisioned firstmate home; the default is kind=ship.
 #   Before a secondmate launch, the home is locally fast-forwarded to the primary
 #   default-branch commit when safe; skipped syncs warn and launch unchanged.
-#   Ship/scout spawns refuse to launch after treehouse get unless the resolved pane
-#   path is a real git worktree root distinct from the primary project checkout.
+#   Ship/scout spawns accept a pane path after treehouse get only once it is a real
+#   git worktree root distinct from the primary project checkout and the firstmate
+#   home/root (treehouse setup hops through intermediate cwds; mid-hop samples are
+#   rejected and polling continues), and refuse to launch if none appears in 60s.
 # Batch dispatch: pass one or more `id=repo` pairs instead of a single <id> <project>, e.g.
 #     fm-spawn.sh fix-a-k3=projects/foo add-b-q7=projects/bar [--scout]
 #   Each pair re-execs this script in single-task mode, so the single path stays the only
@@ -83,6 +85,8 @@ SUB_HOME_MARKER=".fm-secondmate-home"
 . "$SCRIPT_DIR/fm-config-inherit-lib.sh"
 # shellcheck source=bin/fm-backend.sh
 . "$SCRIPT_DIR/fm-backend.sh"
+# shellcheck source=bin/fm-tangle-lib.sh
+. "$SCRIPT_DIR/fm-tangle-lib.sh"
 # Skip the watcher guard when re-exec'd for one pair of a batch (FM_SPAWN_NO_GUARD is
 # set by the batch loop below), so the guard runs once for the batch, not once per pair.
 [ -n "${FM_SPAWN_NO_GUARD:-}" ] || "$FM_ROOT/bin/fm-guard.sh" || true
@@ -610,42 +614,34 @@ spawn_send_key() {  # <target> <key>
 if [ "$KIND" != secondmate ]; then
   spawn_send_text_line "$T" 'treehouse get'
 
-  # Wait for the treehouse subshell: the pane's cwd moves from the project to the worktree.
-  for _ in $(seq 1 60); do
+  # Physical anchors for the per-sample isolation check below. A cd failure
+  # leaves the raw path, which still guards against an exact-path match.
+  proj_real=$(cd "$PROJ_ABS" 2>/dev/null && pwd -P) || proj_real=$PROJ_ABS
+  home_real=$(cd "$FM_HOME" 2>/dev/null && pwd -P) || home_real=$FM_HOME
+  root_real=$(cd "$FM_ROOT" 2>/dev/null && pwd -P) || root_real=$FM_ROOT
+
+  # Wait for the treehouse subshell: the pane's cwd moves from the project to the
+  # worktree. The move is not atomic - treehouse's setup hops through intermediate
+  # cwds (the user's home, the firstmate home) before settling - so "left the
+  # project" is not enough: a sample landing mid-hop would record a wrong
+  # worktree= in meta and install the crew's turn-end hook into the WRONG
+  # checkout. Accept a candidate only once it proves it is a genuine ISOLATED
+  # worktree root: physically AT a git worktree top, distinct from the project's
+  # primary checkout AND from the firstmate home/root (a mis-sample can itself be
+  # another valid repo root; see fm_isolated_worktree_root in fm-tangle-lib.sh).
+  # Branching/committing in a mis-detected checkout would tangle it onto a
+  # feature branch (fm-tangle-lib.sh), so anything else keeps polling.
+  wt_wait_secs=${FM_SPAWN_WT_TIMEOUT:-60}  # override is for tests; production keeps 60s
+  for _ in $(seq 1 "$wt_wait_secs"); do
     p=$(spawn_current_path "$T" || true)
-    if [ -n "$p" ] && [ "$p" != "$PROJ_ABS" ]; then
+    if [ -n "$p" ] && fm_isolated_worktree_root "$p" "$proj_real" "$home_real" "$root_real" >/dev/null; then
       WT="$p"
       break
     fi
     sleep 1
   done
   if [ -z "$WT" ]; then
-    echo "error: treehouse get did not enter a worktree within 60s; inspect window $T" >&2
-    exit 1
-  fi
-
-  # Isolation guard: refuse to launch unless WT is a genuine, ISOLATED worktree -
-  # a real git worktree root, distinct from the project's primary checkout
-  # (PROJ_ABS). Firstmate is a treehouse-pooled repo of itself, so a treehouse-get
-  # misfire can leave the pane in (or in a subdir of, or a symlink to) the primary
-  # checkout; branching/committing there would tangle the primary onto a feature
-  # branch (see fm-tangle-lib.sh). The wait loop above only proves the pane left
-  # PROJ_ABS's exact path; this proves it landed in a true, separate worktree.
-  wt_real=
-  if ! wt_real=$(cd "$WT" 2>/dev/null && pwd -P); then
-    wt_real=
-  fi
-  proj_real=
-  if ! proj_real=$(cd "$PROJ_ABS" 2>/dev/null && pwd -P); then
-    proj_real=
-  fi
-  wt_top=$(git -C "$WT" rev-parse --show-toplevel 2>/dev/null || true)
-  wt_top_real=
-  if ! wt_top_real=$(cd "$wt_top" 2>/dev/null && pwd -P); then
-    wt_top_real=
-  fi
-  if [ -z "$wt_real" ] || [ -z "$wt_top_real" ] || [ "$wt_real" != "$wt_top_real" ] || [ "$wt_real" = "$proj_real" ]; then
-    echo "error: treehouse get did not yield an isolated worktree (resolved '$WT'; worktree root '${wt_top:-none}'; primary '$PROJ_ABS'); refusing to launch to avoid tangling the primary checkout. Inspect window $T" >&2
+    echo "error: treehouse get did not enter an isolated worktree within ${wt_wait_secs}s (project '$PROJ_ABS'); refusing to launch to avoid tangling a primary checkout. Last sample '$p'. Inspect window $T" >&2
     exit 1
   fi
 fi
