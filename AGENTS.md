@@ -441,7 +441,7 @@ Write the brief per section 11.
 **Two-phase ship (spec-worthy work).**
 When a ship task is spec-worthy - an OpenSpec proposal should precede implementation - run it as two phases in the SAME task worktree, each on a FRESH agent session, scaffolded with `bin/fm-brief.sh`'s `--phase` flag (see its header for mechanics).
 Phase A ends when the crewmate has committed the OpenSpec change on the task branch and stopped - never a PR; present that committed proposal to the captain for approval.
-On approval, exit the phase A agent and relaunch a fresh session in the same worktree with a phase B brief, so implementation starts with a full context window instead of compacting mid-implementation.
+On approval, exit the phase A agent, remove the phase A `brief.md` (`bin/fm-brief.sh` refuses to overwrite an existing brief), and relaunch a fresh session in the same worktree with a phase B brief, so implementation starts with a full context window instead of compacting mid-implementation.
 No teardown between phases: the proposal commit is unlanded and ships in the same PR as the implementation.
 Phase B implements from the committed proposal and then follows the project's normal delivery mode.
 

@@ -65,6 +65,11 @@ Ship briefs also tell the crewmate to verify `pwd -P` and `git rev-parse --show-
 
 Ship tasks change projects and ship by project mode (`no-mistakes`, `direct-PR`, or `local-only`); scout tasks investigate, plan, reproduce bugs, or audit, then leave a report at `data/<id>/report.md` and never push.
 
+Spec-worthy ship work can run as two phases in the same task worktree, each on a fresh agent session, scaffolded by `fm-brief.sh --phase propose|implement`.
+Phase A commits an OpenSpec proposal on the task branch and stops for captain approval - never a PR.
+Phase B asserts the existing branch instead of creating one, implements from the committed `openspec/changes/` directory, and then follows the project's normal delivery mode.
+There is no teardown between phases, so the proposal commit ships in the same PR as the implementation.
+
 ## Dispatch profiles
 
 Crewmate and scout dispatch can stay on the static crewmate harness resolved by `config/crew-harness`, or it can use local dispatch profiles in `config/crew-dispatch.json`.
