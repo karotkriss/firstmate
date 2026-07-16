@@ -6,8 +6,18 @@
 # description, acceptance criteria, and context, and may adjust other sections
 # when the task genuinely deviates (e.g. working an existing external PR instead
 # of shipping a new one).
-# Usage: fm-brief.sh <task-id> <repo-name> [--scout]
+# Usage: fm-brief.sh <task-id> <repo-name> [--scout] [--phase propose|implement]
 #        fm-brief.sh <task-id> --secondmate <project>...
+#   --phase runs a spec-worthy ship task in two phases in the SAME worktree,
+#   each on a fresh agent session (see AGENTS.md task lifecycle):
+#     propose    phase A: draft and commit the OpenSpec change on the task
+#                branch, report done, and STOP - never a PR; implementation
+#                follows in a separate session on explicit instruction.
+#     implement  phase B: check out the EXISTING task branch (no branch
+#                creation) with the approved proposal committed at its tip,
+#                and implement from the committed OpenSpec change directory;
+#                delivery then follows the project's normal mode.
+#   --phase applies only to ship tasks; it is refused with --scout/--secondmate.
 #   --scout writes the scout contract instead: the deliverable is a report at
 #   data/<task-id>/report.md (no branch, no push, no PR) and the worktree is scratch.
 #   --secondmate writes a persistent secondmate charter. The project list
@@ -39,14 +49,27 @@ FM_HOME="${FM_HOME:-${FM_ROOT_OVERRIDE:-$FM_ROOT}}"
 DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 STATE="${FM_STATE_OVERRIDE:-$FM_HOME/state}"
 KIND=ship
+PHASE=""
 POS=()
+expect_phase=0
 for a in "$@"; do
+  if [ "$expect_phase" = 1 ]; then PHASE=$a; expect_phase=0; continue; fi
   case "$a" in
     --scout) KIND=scout ;;
     --secondmate) KIND=secondmate ;;
+    --phase) expect_phase=1 ;;
+    --phase=*) PHASE=${a#--phase=} ;;
     *) POS+=("$a") ;;
   esac
 done
+[ "$expect_phase" = 0 ] || { echo "error: --phase requires a value (propose|implement)" >&2; exit 1; }
+case "$PHASE" in
+  ""|propose|implement) ;;
+  *) echo "error: invalid --phase '$PHASE' (propose|implement)" >&2; exit 1 ;;
+esac
+if [ -n "$PHASE" ] && [ "$KIND" != ship ]; then
+  echo "error: --phase applies only to ship tasks, not --$KIND" >&2; exit 1
+fi
 ID=${POS[0]}
 
 BRIEF="$DATA/$ID/brief.md"
@@ -222,20 +245,49 @@ EOF
     ;;
 esac
 
+TASK_SPEC=""
+SETUP0="You are in a disposable git worktree of $REPO, at a detached HEAD on a clean default branch."
+SETUP1="1. First action: create your branch: \`git checkout -b fm/$ID\`$SETUP2"
+
+case "$PHASE" in
+  propose)
+    DOD=$(cat <<EOF
+# Definition of done
+This is PHASE A (propose) of a two-phase task; implementation happens later in a separate fresh session in this same worktree.
+Your deliverable is the OpenSpec change for the task above, committed on your branch \`fm/$ID\` - never a PR.
+Do NOT implement, do NOT push, do NOT open a PR, and do NOT run /no-mistakes.
+When the OpenSpec change is committed, append \`done: proposal committed on fm/$ID\` to the status file and STOP.
+Implementation follows in a separate session on explicit instruction, after the proposal is approved.
+EOF
+)
+    ;;
+  implement)
+    TASK_SPEC="
+
+This is PHASE B (implement) of a two-phase task.
+The specification is the approved OpenSpec change directory committed on this branch (under \`openspec/changes/\`); read it first and implement exactly what it specifies.
+The proposal commit ships in the same PR as your implementation - do not rewrite or drop it."
+    SETUP0="You are in the SAME disposable git worktree of $REPO that phase A used; the task branch \`fm/$ID\` already exists here with the approved proposal committed."
+    SETUP1="1. First action: check out the existing task branch: \`git checkout fm/$ID\`.
+   Do NOT create a new branch: this is PHASE B and the branch already exists with the approved OpenSpec proposal committed at its tip.
+   Verify the committed proposal is present (the \`openspec/changes/\` directory for this task exists on the branch); if the branch or the committed proposal is missing, append \`blocked: phase B launched without a committed proposal on fm/$ID\` to the status file and stop.$SETUP2"
+    ;;
+esac
+
 cat > "$BRIEF" <<EOF
 You are a crewmate: an autonomous worker agent managed by firstmate. Work on your own; do not wait for a human.
 
 # Task
-{TASK}
+{TASK}$TASK_SPEC
 
 # Setup
-You are in a disposable git worktree of $REPO, at a detached HEAD on a clean default branch.
+$SETUP0
 
 **Verify isolation before anything else.** Run \`pwd -P\` and \`git rev-parse --show-toplevel\`; both must resolve to the disposable treehouse worktree you were launched in, typically a path under a \`.treehouse/\` pool, not the primary checkout firstmate operates from.
 The path check is authoritative: \`git rev-parse --git-dir\` and \`git rev-parse --git-common-dir\` can help inspect the repo, but they do not prove you are outside the primary checkout.
 If the top-level path is the primary checkout or not the worktree you were launched in, STOP - do not branch or commit here - append \`blocked: launched in primary checkout, not an isolated worktree\` to the status file and stop.
 
-1. First action: create your branch: \`git checkout -b fm/$ID\`$SETUP2
+$SETUP1
 
 # Rules
 $RULE1
@@ -259,4 +311,8 @@ Keep it proportionate: skip \`AGENTS.md\` edits for trivial tasks that produced 
 
 $DOD
 EOF
-echo "scaffolded: $BRIEF (ship, mode=$MODE; replace {TASK})"
+if [ -n "$PHASE" ]; then
+  echo "scaffolded: $BRIEF (ship, mode=$MODE, phase=$PHASE; replace {TASK})"
+else
+  echo "scaffolded: $BRIEF (ship, mode=$MODE; replace {TASK})"
+fi

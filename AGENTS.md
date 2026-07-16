@@ -438,6 +438,13 @@ For `no-mistakes` projects, the pipeline rebase step absorbs mild overlaps; for 
 
 Write the brief per section 11.
 
+**Two-phase ship (spec-worthy work).**
+When a ship task is spec-worthy - an OpenSpec proposal should precede implementation - run it as two phases in the SAME task worktree, each on a FRESH agent session, scaffolded with `bin/fm-brief.sh`'s `--phase` flag (see its header for mechanics).
+Phase A ends when the crewmate has committed the OpenSpec change on the task branch and stopped - never a PR; present that committed proposal to the captain for approval.
+On approval, exit the phase A agent and relaunch a fresh session in the same worktree with a phase B brief, so implementation starts with a full context window instead of compacting mid-implementation.
+No teardown between phases: the proposal commit is unlanded and ships in the same PR as the implementation.
+Phase B implements from the committed proposal and then follows the project's normal delivery mode.
+
 ### Spawn
 
 Load `harness-adapters` before spawning or recovering any direct report so trust dialogs, verified adapters, and harness-specific behavior are handled correctly.
@@ -775,6 +782,7 @@ The ship-brief Setup opens with a worktree-isolation assertion ahead of the bran
 For a ship task the definition of done is shaped by the project's delivery mode (section 6): `no-mistakes` stops after the implementation commit, then firstmate triggers the harness-appropriate no-mistakes validation pipeline; `direct-PR` has the crewmate push and open the PR itself, and `local-only` has it stop at "ready in branch" for firstmate to review and merge locally.
 The no-mistakes brief points to no-mistakes' version-matched guidance and keeps only firstmate-specific wrapper rules for `ask-user` escalation, `--yes` avoidance, and the CI-green done line.
 The scaffold reads the mode via `fm-project-mode.sh`, so you do not pass it.
+For two-phase spec-worthy ship tasks add `--phase propose` or `--phase implement` per the section 7 two-phase contract.
 Ship briefs also include the project-memory contract: run `bin/fm-ensure-agents-md.sh` when the project already has agent-memory files or when the task produced durable project-intrinsic knowledge, then record proportionate learnings in `AGENTS.md`.
 For scout tasks add `--scout`: the scaffold swaps the definition of done for the report contract (findings to `data/<id>/report.md`, no branch, no push, no PR) and declares the worktree scratch; scout is mode-agnostic.
 Scout briefs do not include the project-memory step, because their deliverable is a report rather than a committed project change.
