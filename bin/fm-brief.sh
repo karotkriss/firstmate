@@ -251,6 +251,7 @@ SETUP1="1. First action: create your branch: \`git checkout -b fm/$ID\`$SETUP2"
 
 case "$PHASE" in
   propose)
+    RULE1="1. Never push to any remote and never open a PR. Work only on your \`fm/$ID\` branch; implementation happens later in a separate session."
     DOD=$(cat <<EOF
 # Definition of done
 This is PHASE A (propose) of a two-phase task; implementation happens later in a separate fresh session in this same worktree.

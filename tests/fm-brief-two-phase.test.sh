@@ -80,6 +80,22 @@ test_propose_brief_stops_at_committed_proposal() {
   pass "fm-brief: --phase propose stops at the committed proposal, never a PR"
 }
 
+test_propose_brief_on_direct_pr_never_pushes() {
+  local home brief
+  home=$(make_home propose-direct)
+  FM_HOME="$home" "$BRIEF" prop-b1 beta --phase propose >/dev/null 2>&1
+  brief="$home/data/prop-b1/brief.md"
+  assert_present "$brief" "propose brief on a direct-PR project was not scaffolded"
+  # Rule 1 must forbid pushing even though the project's delivery mode allows it
+  # in the phase-free/implement briefs - the DOD's "do NOT push" must not be
+  # contradicted by a mode-derived Rule 1 that sanctions pushing the branch.
+  assert_grep "Never push to any remote and never open a PR" "$brief" \
+    "propose brief on direct-PR must override Rule 1 to forbid pushing"
+  assert_no_grep "push only your \`fm/prop-b1\` branch" "$brief" \
+    "propose brief on direct-PR must not keep the mode-derived push-allowed Rule 1"
+  pass "fm-brief: --phase propose never sanctions pushing, even on direct-PR"
+}
+
 # --- (c) --phase implement ----------------------------------------------------
 
 test_implement_brief_asserts_existing_branch() {
@@ -152,6 +168,7 @@ test_phase_flag_validation() {
 
 test_default_briefs_have_no_phase_content
 test_propose_brief_stops_at_committed_proposal
+test_propose_brief_on_direct_pr_never_pushes
 test_implement_brief_asserts_existing_branch
 test_implement_brief_keeps_mode_dod
 test_phase_flag_validation
