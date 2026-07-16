@@ -641,7 +641,7 @@ if [ "$KIND" != secondmate ]; then
     sleep 1
   done
   if [ -z "$WT" ]; then
-    echo "error: treehouse get did not enter an isolated worktree within ${wt_wait_secs}s (project '$PROJ_ABS'); refusing to launch to avoid tangling a primary checkout. Inspect window $T" >&2
+    echo "error: treehouse get did not enter an isolated worktree within ${wt_wait_secs}s (project '$PROJ_ABS'); refusing to launch to avoid tangling a primary checkout. Last sample '$p'. Inspect window $T" >&2
     exit 1
   fi
 fi
