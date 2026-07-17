@@ -216,6 +216,10 @@ Two firstmate-specific rules layer on top of that guidance:
   When the decision comes back, feed it to the gate with \`no-mistakes axi respond\` and let the pipeline apply it - do not route the question to "the user" or implement the fix yourself.
 - Avoid \`--yes\`: the captain, not you, owns the ask-user decisions it would silently auto-resolve.
 
+PR evidence images: after the pipeline has opened the PR, if the run left evidence images under its evidence dir (\`/tmp/no-mistakes-evidence/<run>/\`), upload them all in ONE call so they render as real images on the PR: \`gh attach --repo <owner>/<repo> --comment <pr-number> <image files...>\`.
+If \`gh attach\` is not installed, first try the one-time \`gh extension install enthus-appdev/gh-attach\`; if that install fails (offline, blocked), keep the local-path evidence lines and continue - evidence upload must never block or delay the ship.
+If the run produced no evidence images, skip this step silently.
+
 After /no-mistakes reports CI green, append \`done: PR {url} checks green\` and stop. You are finished.
 EOF
 )
