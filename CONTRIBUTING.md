@@ -77,6 +77,7 @@ tests/fm-grok-harness.test.sh             # grok adapter spawn hook, token guard
 tests/fm-fleet-sync.test.sh               # project clone refresh: safe detached recovery, STUCK drift reports, benign skips, and bootstrap relay
 tests/fm-x-mode.test.sh                   # X-mode poll, inbox context round-trip, reply threading, dismiss, dry-run preview, and .env-presence activation tests
 tests/fm-tangle-guard.test.sh             # primary-checkout tangle detection and spawn/brief isolation tests
+tests/fm-brief.test.sh                    # fm-brief.sh generated scaffold tests: no-mistakes ship brief carries the fail-open PR evidence-image upload rule, scout brief never does
 tests/fm-spawn-worktree-wait.test.sh      # fm-spawn's worktree-discovery poll: isolated-worktree-root predicate cases, hop-sequence replay, and poll-wiring structural checks
 tests/fm-spawn-batch.test.sh              # batch dispatch and FM_HOME project-path scoping tests
 tests/fm-spawn-dispatch-profile.test.sh   # concrete dispatch profile flags: active-profile backstop, harness/model/effort meta, launch templates, batch forwarding, and secondmate exemption
