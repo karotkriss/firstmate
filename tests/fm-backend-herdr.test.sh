@@ -864,6 +864,42 @@ test_composer_state_popup_placeholder_fill_is_pending() {
   pass "fm_backend_herdr_composer_state: a slash-command popup's argument-hint placeholder still reads pending (the incident fix)"
 }
 
+# Live-reproduced incident (2026-07-19, real claude on herdr, pane
+# default:w5:p2E): a steer sent to a MID-TURN agent is QUEUED, not swallowed.
+# claude replaces the composer text with its queue hint, and the agent picked
+# the steer up normally when its turn ended - but fm-send reported a hard
+# "Enter swallowed; text left in composer" error. herdr reaches this path
+# whenever the agent was already working when the steer went out (baseline is
+# not idle, so fm_backend_herdr_send_text_submit falls back to the composer
+# read instead of the native working-status confirmation). The queue hint is
+# the harness's own decoration, NOT our text, so the submit landed.
+test_composer_state_queued_steer_is_empty() {
+  local dir log resp fb out
+  dir="$TMP_ROOT/composer-queued"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  printf '  ╭──────────────────────────────────────╮\n  │ ❯ Press up to edit queued messages    │\n  ╰──────────────── Composer ─────────────╯\n' > "$resp/1.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_composer_state default:w1:p2 "ship the fix"' "$ROOT" )
+  [ "$out" = empty ] || fail "a queued (landed) mid-turn steer must not read as a swallowed Enter, got '$out'"
+  pass "fm_backend_herdr_composer_state: a mid-turn steer left in the queue reads empty, not a swallowed Enter"
+}
+
+# The other half of the same contract: the warning must stay LOUD for the one
+# genuine failure. When the text we just typed is still sitting in the composer,
+# that IS a swallowed Enter and must still read pending so fm-send exits
+# non-zero. Silencing this is how firstmate would stop learning that a steer
+# never landed.
+test_composer_state_genuine_swallow_still_pending() {
+  local dir log resp fb out
+  dir="$TMP_ROOT/composer-swallow"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  printf '  ╭──────────────────────────────────────╮\n  │ ❯ ship the fix                        │\n  ╰──────────────── Composer ─────────────╯\n\n  Enter:send\n' > "$resp/1.out"
+  fb=$(make_herdr_fakebin "$dir")
+  out=$( PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" \
+    bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_composer_state default:w1:p2 "ship the fix"' "$ROOT" )
+  [ "$out" = pending ] || fail "our own text still in the composer is a genuine swallow and must stay pending, got '$out'"
+  pass "fm_backend_herdr_composer_state: a genuine swallowed Enter still reads pending (the warning stays loud)"
+}
+
 test_composer_state_unknown_on_capture_failure() {
   local dir log resp fb out status
   dir="$TMP_ROOT/composer-capture-fail"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
@@ -2087,6 +2123,8 @@ test_composer_state_bare_prompt_is_empty
 test_composer_state_ghost_placeholder_is_empty
 test_composer_state_real_text_is_pending
 test_composer_state_popup_placeholder_fill_is_pending
+test_composer_state_queued_steer_is_empty
+test_composer_state_genuine_swallow_still_pending
 test_composer_state_unknown_on_capture_failure
 test_composer_state_unknown_when_no_composer_row_found
 test_composer_state_pi_separator_idle_is_empty

@@ -106,6 +106,28 @@ Reading that one stale frame was enough to spend a spurious extra Enter on an id
 `fm_tmux_submit_enter_core` therefore confirms a `pending` read with a second read before spending another Enter.
 After that change, live `bin/fm-send.sh` runs against a claude pane: 6/6 clean at idle, 3/3 clean mid-turn.
 
+### End-to-end re-verification, 2026-07-20
+
+Re-run after the mid-turn false negative was reported again from a live claude scout on the herdr backend (pane `default:w5:p2E`), against throwaway panes on Linux (WSL2), tmux 3.6, harness versions claude 2.1.215 / codex-cli 0.144.6 / opencode 1.18.3 / pi 0.80.10.
+That report turned out to be the unfixed code path: the fix had never been pushed, so the home that reproduced it was running a build without it.
+Comparing real `bin/fm-send.sh` exit codes at the same live pane state, pre-fix tree (`6721812`) against this branch:
+
+| harness | pane state | pre-fix exit | fixed exit |
+| --- | --- | --- | --- |
+| claude 2.1.215 | idle | 1 (`Enter swallowed`) | 0 |
+| claude 2.1.215 | mid-turn, steer queued | 1 (`Enter swallowed`) | 0 |
+| opencode 1.18.3 | mid-turn, steer queued | 1 (`Enter swallowed`) | 0 |
+| codex-cli 0.144.6 | idle and mid-turn | 0 | 0 |
+| pi 0.80.10 | idle | 0 | 0 |
+
+The queued steer was confirmed to have genuinely landed, not merely to have stopped erroring: the pane showed `❯ Press up to edit queued messages` at submit time, and claude consumed the exact steer text when its turn ended.
+codex was never affected because its post-submit row returns to a DIMMED ghost placeholder that ghost stripping already removed, and pi draws a genuinely blank composer row, so the padding never existed there.
+A genuine swallow still reads `pending` and still exits non-zero: verified by typing text into an idle claude composer and never pressing Enter.
+pi could not be exercised mid-turn because no model was configured on the verifying machine, and grok was not installed; both remain unverified for the queued case, and the fix is at the shared classifier rather than per harness.
+
+The strict no-submit-in-flight path is a separate caller and is NOT repaired for opencode: `fm_tmux_composer_state <pane>` with no submitted text still reads `pending` on an idle opencode pane, because its `Ask anything...` placeholder is undimmed (upstream issue #583).
+That affects the away-mode injector's pending-input guard, not `fm-send`, and the existing `FM_COMPOSER_IDLE_RE` override is the operator-facing knob for it.
+
 ## Agent liveness probe
 
 `fm_backend_target_exists` (`bin/fm-backend.sh`) only checks that a window's pane still exists.
