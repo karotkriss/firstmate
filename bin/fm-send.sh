@@ -15,6 +15,14 @@
 # submit or reports an inconclusive send. If a swallowed Enter is positively
 # confirmed, fm-send exits NON-ZERO so the caller knows the steer did not land
 # instead of silently leaving an unsubmitted instruction.
+# "Positively confirmed" is literal (task fm-send-false-negative-n8): the
+# adapters pass the submitted text down to the shared composer classifier, so a
+# swallow is only called when THAT TEXT is still sitting in the composer. Any
+# other residue on the composer row is the harness's own decoration and the
+# submit landed - a steer sent mid-turn is QUEUED, and claude then shows "Press
+# up to edit queued messages" where the text used to be. Inferring the swallow
+# from a merely non-empty composer made this error fire on steers that landed,
+# which is how a warning that must stay loud gets trained into noise.
 # Submission dispatches through the target's recorded backend; the tmux adapter
 # shares its composer/submit core with the away-mode daemon via bin/fm-tmux-lib.sh.
 # Tune with FM_SEND_RETRIES (default 3) / FM_SEND_SLEEP (0.4).

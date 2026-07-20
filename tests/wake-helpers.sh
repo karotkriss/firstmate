@@ -231,7 +231,11 @@ case "${1:-}" in
         [ "${FM_FAKE_PERSIST_SWALLOW:-0}" = 1 ] || rm -f "$FM_FAKE_SWALLOW"
       else
         [ -n "${FM_FAKE_SENT:-}" ] && printf '[ENTER]\n' >> "$FM_FAKE_SENT"
-        printf '│ > │\n' > "$COMPOSER"
+        # FM_FAKE_SUBMITTED_ROW: what the composer row shows AFTER a successful
+        # submit. Defaults to the empty box; a test overrides it to reproduce a
+        # harness that leaves its own decoration there (claude's mid-turn queue
+        # hint, opencode's placeholder) instead of a blank composer.
+        printf '%s\n' "${FM_FAKE_SUBMITTED_ROW:-│ > │}" > "$COMPOSER"
       fi
     elif [ "$lit" = 1 ]; then
       [ "${FM_FAKE_SEND_FAIL:-0}" = 1 ] && exit 1

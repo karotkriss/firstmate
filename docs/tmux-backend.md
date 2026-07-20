@@ -66,6 +66,46 @@ tmux list-windows -t <session-name>
 Use the current tmux session name for the run-inside-tmux path, or `firstmate` for the detached outside-tmux path.
 You should see a `fm-<id>` window for the task, live and updating as the crewmate works.
 
+## Submit confirmation: what a swallowed Enter actually looks like
+
+`fm-send` reports a swallowed Enter by reading the composer row back after submitting.
+Recorded here because the read is entirely empirical and the harnesses redraw differently.
+
+Verified 2026-07-19 on Linux (WSL2), tmux 3.4, against live agents in throwaway panes, harness versions claude 2.1.215, codex-cli 0.144.6, opencode 1.18.3.
+`pi` and `grok` were not installed on the verifying machine, so their composer rows are unverified; the fix is at the shared classifier and is harness-generic.
+
+The composer row of an EMPTY composer, captured with `tmux capture-pane -e -p -t <pane> -S <cursor_y> -E <cursor_y>` and passed through `fm_composer_strip_ghost`:
+
+| harness | bytes | reads as |
+| --- | --- | --- |
+| claude 2.1.215 | `e2 9d af  c2 a0` (`❯` + U+00A0 NO-BREAK SPACE) | empty, but only since the U+00A0 normalization |
+| codex 0.144.6 | `e2 80 ba  20` (`›` + ASCII space) | empty |
+| opencode 1.18.3 | `┃  Ask anything... "Fix broken tests"` | its placeholder is NOT dimmed, so it survives ghost stripping and reads as content |
+
+Two consequences, both fixed in `bin/fm-composer-lib.sh` (task fm-send-false-negative-n8):
+
+1. claude pads its empty composer with U+00A0, which bash's `[[:space:]]` does not trim.
+   Before the fix every claude pane classified `pending` even fully idle, so `fm-send` reported a swallowed Enter on every steer and the away-mode injector saw every idle claude pane as busy with human input.
+2. A steer sent MID-TURN is queued, not swallowed: claude replaces the composer row with `❯ Press up to edit queued messages` and processes the message with the next tool result (confirmed by the agent itself in the pane).
+   opencode's undimmed placeholder is the same shape of residue (upstream issue #583).
+   Inferring failure from a merely non-empty composer therefore fired on steers that had landed.
+
+The submit paths now pass the text they typed down to the classifier, so a swallow is only called when THAT TEXT is still on the row.
+Measured on live panes holding our own unsubmitted text (`fm_tmux_composer_state <pane> <text>`):
+
+| pane state | claude | codex | opencode |
+| --- | --- | --- | --- |
+| our text sitting unsubmitted | `pending` | `pending` | `pending` |
+| a wrapped TAIL of our text | `pending` | - | - |
+| unrelated text in the composer | `empty` | `empty` | `empty` |
+| mid-turn, steer queued | `empty` | `empty` | `empty` |
+
+Redraw timing matters too.
+Sampling the composer row every 0.35s immediately after Enter on claude 2.1.215, the row still showed the just-submitted text at t=0 and was clear by the next sample, so it clears somewhere between 0.4s and 0.75s while `FM_SEND_SLEEP` defaults to 0.4s.
+Reading that one stale frame was enough to spend a spurious extra Enter on an idle pane and, once in about five runs, to report a swallow on a steer that had landed.
+`fm_tmux_submit_enter_core` therefore confirms a `pending` read with a second read before spending another Enter.
+After that change, live `bin/fm-send.sh` runs against a claude pane: 6/6 clean at idle, 3/3 clean mid-turn.
+
 ## Agent liveness probe
 
 `fm_backend_target_exists` (`bin/fm-backend.sh`) only checks that a window's pane still exists.

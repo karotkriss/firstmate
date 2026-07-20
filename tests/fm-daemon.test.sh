@@ -963,6 +963,26 @@ test_submit_ack_confirms_on_bordered_empty_composer() {
   pass "submit-ACK confirms a submit when the composer returns to a bordered-empty box"
 }
 
+test_submit_ack_confirms_when_the_harness_decorates_the_composer() {
+  # Task fm-send-false-negative-n8: a submit that LANDED must confirm even when
+  # the harness leaves its own text on the composer row afterwards. Verified
+  # 2026-07-19 on claude 2.1.215: a steer sent mid-turn is QUEUED (it landed) and
+  # the composer row becomes "❯ Press up to edit queued messages", which the old
+  # composer-must-be-empty ACK read as a swallowed Enter - so fm-send exited
+  # non-zero on a steer that had landed, ~100% of the time mid-turn.
+  local dir fakebin sent verdict
+  dir=$(make_bordered_case ack-decorated)
+  fakebin="$dir/fakebin"; sent="$dir/sent.log"; : > "$sent"
+  verdict=$(PATH="$fakebin:$PATH" FM_FAKE_COMPOSER="$dir/composer" FM_FAKE_SENT="$sent" \
+    FM_FAKE_SUBMITTED_ROW='❯ Press up to edit queued messages' \
+    fm_tmux_submit_core "win" "the digest" 3 0.05 0.05)
+  [ "$verdict" = empty ] \
+    || fail "submit-ACK reported a false swallow on a queued (landed) steer: $verdict"
+  [ "$(grep -c '\[ENTER\]' "$sent")" -eq 1 ] \
+    || fail "a landed submit must stop retrying Enter, not keep hammering the pane"
+  pass "submit-ACK confirms a landed submit when the harness decorates the composer row (queued steer)"
+}
+
 test_submit_ack_reports_pending_on_persistent_swallow() {
   # A genuinely swallowed Enter (text stays in the box across all retries) is
   # reported as "pending" — the daemon keeps the buffer, fm-send exits non-zero —
@@ -1707,6 +1727,7 @@ test_classify_stale_dedup_against_signal
 test_pane_input_pending_bordered_idle_not_pending
 test_pane_input_pending_bordered_with_text_is_pending
 test_submit_ack_confirms_on_bordered_empty_composer
+test_submit_ack_confirms_when_the_harness_decorates_the_composer
 test_submit_ack_reports_pending_on_persistent_swallow
 test_max_defer_empty_swallow_types_once_and_alarms
 test_max_defer_flushes_empty_idle_pane

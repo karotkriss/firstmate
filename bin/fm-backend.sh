@@ -630,7 +630,11 @@ fm_backend_busy_state() {  # <backend> <target>
 # submit path uses an internal content-diff approach with no separately named
 # classifier, so it reports unknown here - callers fall back to their own
 # policy, exactly as an unknown fm_backend_busy_state already does.
-fm_backend_composer_state() {  # <backend> <target> -> empty|pending|unknown
+# An adapter that owns a named classifier also accepts an optional trailing
+# <submitted-text> (see fm_composer_classify_content): a submit path passes the
+# text it just typed so harness decoration left on the composer row is not read
+# as a swallowed Enter, while a caller with no submit in flight omits it.
+fm_backend_composer_state() {  # <backend> <target> [...adapter args] -> empty|pending|unknown
   local backend=$1
   shift
   fm_backend_source "$backend" || { printf 'unknown'; return 0; }

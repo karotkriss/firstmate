@@ -63,7 +63,10 @@ fm_tmux_strip_ghost() { fm_composer_strip_ghost; }
 # fm_tmux_composer_state: classify the cursor/composer line of <target> as
 #   empty   - no pending input (blank, a busy footer, an empty agent composer, or
 #             only de-emphasised ghost/placeholder text). Safe to inject; also the positive
-#             acknowledgement that a submit landed.
+#             acknowledgement that a submit landed. With the optional
+#             <submitted-text> argument, harness decoration left on the composer
+#             row after a successful submit also reads empty (see
+#             fm_composer_classify_content's submitted_text parameter).
 #   pending - real, unsubmitted text on the cursor line (a human mid-typing, or a
 #             previous injection whose Enter was swallowed). Defer / retry.
 #   unknown - the pane could not be read (tmux error), OR the cursor line is a
@@ -85,8 +88,8 @@ fm_tmux_strip_ghost() { fm_composer_strip_ghost; }
 # (bin/fm-composer-lib.sh). The bordered flag is what lets a bordered `│ > │`
 # (claude's own idle composer) read empty while a bare, unbordered `$ ` dead-shell
 # prompt reads unknown.
-fm_tmux_composer_state() {  # <target> -> empty|pending|unknown
-  local target=$1 cy raw plain stripped bordered=0
+fm_tmux_composer_state() {  # <target> [submitted-text] -> empty|pending|unknown
+  local target=$1 submitted_text=${2:-} cy raw plain stripped bordered=0
   cy=$(tmux display-message -p -t "$target" '#{cursor_y}' 2>/dev/null) || { printf 'unknown'; return 0; }
   case "$cy" in ''|*[!0-9]*) printf 'unknown'; return 0 ;; esac
   raw=$(tmux capture-pane -e -p -t "$target" -S "$cy" -E "$cy" 2>/dev/null) || { printf 'unknown'; return 0; }
@@ -114,7 +117,7 @@ fm_tmux_composer_state() {  # <target> -> empty|pending|unknown
      && printf '%s' "$stripped" | grep -qiE "${FM_BUSY_REGEX:-$FM_TMUX_BUSY_REGEX_DEFAULT}"; then
     printf 'empty'; return 0
   fi
-  fm_composer_classify_content "$bordered" "$stripped" "${FM_COMPOSER_IDLE_RE:-}" insensitive "$plain"
+  fm_composer_classify_content "$bordered" "$stripped" "${FM_COMPOSER_IDLE_RE:-}" insensitive "$plain" "$submitted_text"
 }
 
 # fm_pane_input_pending: 0 (pending) if the cursor line holds real unsubmitted
@@ -142,12 +145,24 @@ fm_pane_is_busy() {  # <target>
 #     not be mistaken for a delivered escalation).
 #   - fm-send fails only on "pending" (lenient: a positively-confirmed swallow),
 #     so an unreadable pane never turns a normal steer into a false error.
-fm_tmux_submit_enter_core() {  # <target> <retries> <enter-sleep>
-  local target=$1 retries=$2 sleep_s=$3 i=0 state
+fm_tmux_submit_enter_core() {  # <target> <retries> <enter-sleep> [submitted-text]
+  local target=$1 retries=$2 sleep_s=$3 submitted_text=${4:-} i=0 state
   while :; do
     tmux send-keys -t "$target" Enter 2>/dev/null || true
     sleep "$sleep_s"
-    state=$(fm_tmux_composer_state "$target")
+    state=$(fm_tmux_composer_state "$target" "$submitted_text")
+    if [ "$state" = pending ]; then
+      # A submit that LANDED can still be showing its own text for a beat while
+      # the harness redraws (measured 2026-07-19 on claude 2.1.215: the composer
+      # row clears between 0.4s and 0.75s, and the default enter-sleep is 0.4s).
+      # Reading that stale frame once was enough to spend a spurious extra Enter
+      # on an idle pane and, at worst, report a swallow on a steer that landed.
+      # Confirm the text is STILL there on a second read before spending another
+      # Enter. Only the pending path pays the extra wait. herdr's idle path needs
+      # no equivalent: it confirms from native agent status, not from a redraw.
+      sleep "$sleep_s"
+      state=$(fm_tmux_composer_state "$target" "$submitted_text")
+    fi
     [ "$state" = pending ] || { printf '%s' "$state"; return 0; }
     i=$((i + 1))
     [ "$i" -lt "$retries" ] || { printf 'pending'; return 0; }
@@ -158,5 +173,5 @@ fm_tmux_submit_core() {  # <target> <text> <retries> <enter-sleep> <settle>
   local target=$1 text=$2 retries=$3 sleep_s=$4 settle=$5
   tmux send-keys -t "$target" -l "$text" 2>/dev/null || { printf 'send-failed'; return 0; }
   sleep "$settle"
-  fm_tmux_submit_enter_core "$target" "$retries" "$sleep_s"
+  fm_tmux_submit_enter_core "$target" "$retries" "$sleep_s" "$text"
 }

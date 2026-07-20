@@ -269,8 +269,8 @@ FM_BACKEND_ORCA_IDLE_RE=${FM_BACKEND_ORCA_IDLE_RE:-'^Type a message\.\.\.$'}
 # empty|pending|unknown. Real text stays pending, including a slash-command
 # popup that closed by filling an argument-hint placeholder into the composer;
 # that first Enter selected the popup item, it did not submit the command.
-fm_backend_orca_composer_state() {  # <terminal-id> -> empty|pending|unknown
-  local terminal=$1 cap line trimmed stripped="" found=0
+fm_backend_orca_composer_state() {  # <terminal-id> [submitted-text] -> empty|pending|unknown
+  local terminal=$1 submitted_text=${2:-} cap line trimmed stripped="" found=0
   cap=$(fm_backend_orca_read_text_paged "$terminal" "$FM_BACKEND_ORCA_COMPOSER_LINES") || { printf 'unknown'; return 0; }
   while IFS= read -r line; do
     trimmed="${line#"${line%%[![:space:]]*}"}"
@@ -292,7 +292,7 @@ fm_backend_orca_composer_state() {  # <terminal-id> -> empty|pending|unknown
   # A row was found only by the bordered shape above, so content came from a
   # genuine composer box - delegate to the shared owner with bordered=1. A bare
   # dead-shell prompt has no bordered row and already returned 'unknown' above.
-  fm_composer_classify_content 1 "$stripped" "$FM_BACKEND_ORCA_IDLE_RE"
+  fm_composer_classify_content 1 "$stripped" "$FM_BACKEND_ORCA_IDLE_RE" sensitive "$stripped" "$submitted_text"
 }
 
 fm_backend_orca_send_key() {  # <terminal-id> <key>
@@ -323,7 +323,7 @@ fm_backend_orca_send_text_submit() {  # <terminal-id> <text> <retries> <enter-sl
   while :; do
     fm_backend_orca_send_key "$terminal" Enter || true
     sleep "$sleep_s"
-    state=$(fm_backend_orca_composer_state "$terminal")
+    state=$(fm_backend_orca_composer_state "$terminal" "$text")
     [ "$state" = pending ] || { printf '%s' "$state"; return 0; }
     i=$((i + 1))
     [ "$i" -lt "$retries" ] || { printf 'pending'; return 0; }

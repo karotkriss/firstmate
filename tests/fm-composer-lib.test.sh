@@ -13,6 +13,8 @@
 #      agent composer either way, bordered or bare.
 #   4. Real unsubmitted text reads `pending`; a known idle placeholder reads
 #      `empty`.
+# Contracts 5 and 6 (task fm-send-false-negative-n8) are documented with their
+# tests further down.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -125,6 +127,78 @@ test_real_text_is_pending() {
   pass "fm_composer_classify_content: real unsubmitted text reads pending (including a popup argument-hint fill)"
 }
 
+# --- Task fm-send-false-negative-n8: blank padding and submit confirmation ---
+#
+# The false "Enter swallowed / text not submitted" error had two causes, both
+# here at the shared classifier:
+#   5. A harness may pad an EMPTY composer with a unicode blank that bash's
+#      [[:space:]] does not trim (verified 2026-07-19, claude 2.1.215: "❯" +
+#      U+00A0). That padding read as typed content, so every claude pane
+#      classified `pending` even fully idle.
+#   6. The submit paths inferred failure from the composer merely being
+#      non-empty, so harness decoration left on the row after a SUCCESSFUL
+#      submit read as a swallowed Enter. With the optional <submitted_text>,
+#      only the typed text still being there counts as a swallow.
+
+# nbsp <text> - <text> with every space replaced by U+00A0, the padding claude
+# draws into its empty composer.
+nbsp() { printf '%s' "$1" | sed "s/ /$(printf '\302\240')/g"; }
+
+test_unicode_blank_padding_is_not_typed_content() {
+  local out
+  out=$(classify 0 "$(nbsp '❯ ')")
+  [ "$out" = empty ] \
+    || fail "claude's nbsp-padded empty composer must read empty, got '$out'"
+  out=$(classify 1 "$(nbsp '> ')")
+  [ "$out" = empty ] \
+    || fail "an nbsp-padded bordered composer must read empty, got '$out'"
+  # The padding must not hide real text either.
+  out=$(classify 0 "$(nbsp '❯ fix findings 1 and 3')")
+  [ "$out" = pending ] \
+    || fail "nbsp-separated real text must stay pending, got '$out'"
+  pass "fm_composer_classify_content: unicode blank padding is not typed content (claude 2.1.215 '❯'+U+00A0)"
+}
+
+test_harness_decoration_after_submit_is_not_a_swallow() {
+  local out
+  # claude mid-turn: the steer landed in the queue and the composer row carries
+  # the queue hint. Verified 2026-07-19 on claude 2.1.215.
+  out=$(classify 0 '❯ Press up to edit queued messages' '' sensitive '' 'ship the fix')
+  [ "$out" = empty ] \
+    || fail "claude's mid-turn queue hint must not read as a swallowed Enter, got '$out'"
+  # opencode: an undimmed placeholder survives ghost stripping (upstream #583).
+  out=$(classify 0 '┃  Ask anything... "Fix broken tests"' '' sensitive '' 'ship the fix')
+  [ "$out" = empty ] \
+    || fail "opencode's undimmed placeholder must not read as a swallowed Enter, got '$out'"
+  pass "fm_composer_classify_content: harness decoration on the composer row is not a swallowed Enter"
+}
+
+test_submitted_text_still_in_the_composer_is_pending() {
+  local out
+  # The whole point of the warning: a genuine swallow must stay loud.
+  out=$(classify 0 '❯ ship the fix' '' sensitive '' 'ship the fix')
+  [ "$out" = pending ] || fail "the typed text still in the composer must be pending, got '$out'"
+  # Wrapped input: the composer row holds only a TAIL of what was typed.
+  out=$(classify 0 '❯ and open the PR' '' sensitive '' 'ship the fix and open the PR')
+  [ "$out" = pending ] || fail "a wrapped tail of the typed text must be pending, got '$out'"
+  # A slash-command popup's first Enter EXTENDS the text with an argument hint
+  # instead of submitting it (the orca case) - still unsubmitted.
+  out=$(classify 1 '/compact compaction instructions' '' sensitive '' '/compact')
+  [ "$out" = pending ] || fail "a popup argument-hint fill must be pending, got '$out'"
+  pass "fm_composer_classify_content: the submitted text still on the row stays pending (genuine swallow)"
+}
+
+test_no_submitted_text_keeps_the_strict_verdict() {
+  local out
+  # A caller with no submit in flight (the away-mode injector's pending-input
+  # guard) must keep the strict reading: any real content defers injection.
+  out=$(classify 0 '❯ a human is mid-sentence')
+  [ "$out" = pending ] || fail "without a submitted text the strict verdict must hold, got '$out'"
+  out=$(classify 0 '❯ a human is mid-sentence' '' sensitive '' '')
+  [ "$out" = pending ] || fail "an empty submitted text must not relax the verdict, got '$out'"
+  pass "fm_composer_classify_content: with no submitted text the strict pending verdict is unchanged"
+}
+
 test_bare_shell_glyphs_are_unknown
 test_stripped_unbordered_content_uses_plain_content
 test_bare_shell_prompt_with_command_is_not_empty
@@ -134,3 +208,7 @@ test_empty_content_is_empty
 test_idle_placeholder_is_empty
 test_idle_placeholder_case_mode_is_explicit
 test_real_text_is_pending
+test_unicode_blank_padding_is_not_typed_content
+test_harness_decoration_after_submit_is_not_a_swallow
+test_submitted_text_still_in_the_composer_is_pending
+test_no_submitted_text_keeps_the_strict_verdict

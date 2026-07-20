@@ -543,8 +543,8 @@ fm_backend_cmux_capture() {  # <target> <lines> [expected-label]
 FM_BACKEND_CMUX_COMPOSER_LINES=${FM_BACKEND_CMUX_COMPOSER_LINES:-20}
 FM_BACKEND_CMUX_IDLE_RE=${FM_BACKEND_CMUX_IDLE_RE:-'^Type a message\.\.\.$'}
 
-fm_backend_cmux_composer_state() {  # <target> [expected-label] -> empty|pending|unknown
-  local target=$1 expected_label=${2:-} cap line trimmed stripped="" found=0
+fm_backend_cmux_composer_state() {  # <target> [expected-label] [submitted-text] -> empty|pending|unknown
+  local target=$1 expected_label=${2:-} submitted_text=${3:-} cap line trimmed stripped="" found=0
   cap=$(fm_backend_cmux_capture "$target" "$FM_BACKEND_CMUX_COMPOSER_LINES" "$expected_label") || { printf 'unknown'; return 0; }
   while IFS= read -r line; do
     trimmed="${line#"${line%%[![:space:]]*}"}"
@@ -566,7 +566,7 @@ fm_backend_cmux_composer_state() {  # <target> [expected-label] -> empty|pending
   # A row was found only by the bordered shape above, so content came from a
   # genuine composer box - delegate to the shared owner with bordered=1. A bare
   # dead-shell prompt has no bordered row and already returned 'unknown' above.
-  fm_composer_classify_content 1 "$stripped" "$FM_BACKEND_CMUX_IDLE_RE"
+  fm_composer_classify_content 1 "$stripped" "$FM_BACKEND_CMUX_IDLE_RE" sensitive "$stripped" "$submitted_text"
 }
 
 # fm_backend_cmux_send_text_submit: type <text> into <target> once (raw,
@@ -591,7 +591,7 @@ fm_backend_cmux_send_text_submit() {  # <target> <text> <retries> <enter-sleep> 
   while :; do
     fm_backend_cmux_send_key "$target" Enter "$expected_label" || true
     sleep "$sleep_s"
-    state=$(fm_backend_cmux_composer_state "$target" "$expected_label")
+    state=$(fm_backend_cmux_composer_state "$target" "$expected_label" "$text")
     [ "$state" = pending ] || { printf '%s' "$state"; return 0; }
     i=$((i + 1))
     [ "$i" -lt "$retries" ] || { printf 'pending'; return 0; }

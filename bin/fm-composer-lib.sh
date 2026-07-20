@@ -159,6 +159,65 @@ fm_composer_strip_ghost() {
   '
 }
 
+# UNICODE BLANKS (task fm-send-false-negative-n8): a harness may pad an EMPTY
+# composer with a non-ASCII blank, which bash's [[:space:]] does not trim, so the
+# padding survives as "real typed content" and the row classifies `pending`.
+# Verified 2026-07-19, claude 2.1.215: its empty composer row is "❯" + U+00A0
+# NO-BREAK SPACE, so EVERY claude pane read `pending` - fm-send reported a
+# swallowed Enter on every steer that had in fact landed, and the away-mode
+# injector saw every idle claude pane as busy with human input (the afk-invx-i5
+# deferral, reintroduced by a harness redraw). Normalising here, at the one
+# classifier every adapter delegates to, keeps this from becoming a per-harness
+# patch. The list is the blanks a TUI plausibly pads or joins with; U+00A0 is the
+# verified one. Byte literals, not \u escapes, so this stays bash 3.2 safe like
+# the rest of the composer path.
+FM_COMPOSER_BLANK_CHARS=(
+  "$(printf '\302\240')"      # U+00A0 no-break space (verified: claude)
+  "$(printf '\342\200\207')"  # U+2007 figure space
+  "$(printf '\342\200\257')"  # U+202F narrow no-break space
+  "$(printf '\342\200\213')"  # U+200B zero width space
+  "$(printf '\357\273\277')"  # U+FEFF zero width no-break space
+)
+
+# fm_composer_normalize_blanks: map every unicode blank above to a plain space
+# and trim, so padding cannot masquerade as typed content.
+fm_composer_normalize_blanks() {  # <text> -> normalized text
+  local s=$1 b
+  for b in "${FM_COMPOSER_BLANK_CHARS[@]}"; do s=${s//"$b"/ }; done
+  s="${s#"${s%%[![:space:]]*}"}"
+  printf '%s' "${s%"${s##*[![:space:]]}"}"
+}
+
+# fm_composer_submitted_text_remains: the shared POSITIVE test for a swallowed
+# Enter, used only when a submit path passes the text it just typed.
+#
+# WHY (task fm-send-false-negative-n8): the submit paths used to infer failure
+# from the composer merely being non-empty, so any harness decoration left on the
+# row after a SUCCESSFUL submit read as a swallowed Enter - claude's mid-turn
+# "Press up to edit queued messages" queue hint (the steer had landed, queued),
+# opencode's undimmed "Ask anything..." placeholder (upstream #583). fm-send then
+# exited non-zero on steers that landed, training the operator to ignore the one
+# warning that must stay loud.
+#
+# A swallowed Enter has a positive signature instead: the text just typed is
+# still sitting in the composer. Containment is tested BOTH ways because both
+# happen: the harness may WRAP long input so the composer row holds only a tail
+# of it, and a slash-command popup's first Enter may EXTEND it with an argument
+# placeholder (the orca case) - both are still unsubmitted text of ours. Any
+# other residue is the harness's own decoration, so the submit landed.
+# Returns 0 when the text is still unsubmitted, 1 when it is not ours.
+fm_composer_submitted_text_remains() {  # <content> <submitted-text>
+  local content text
+  content=$(fm_composer_normalize_blanks "$1")
+  text=$(fm_composer_normalize_blanks "$2")
+  # No text to compare against, or nothing typed: keep the strict old reading so
+  # a genuine swallow can never be lost to a missing comparison.
+  { [ -n "$content" ] && [ -n "$text" ]; } || return 0
+  case "$text" in *"$content"*) return 0 ;; esac
+  case "$content" in *"$text"*) return 0 ;; esac
+  return 1
+}
+
 # fm_composer_classify_content: the single shared composer-content verdict.
 #   <bordered> 1 when <content> came from a genuine agent-composer container (a
 #              bordered composer box, or a structurally-identified bare AGENT
@@ -170,6 +229,12 @@ fm_composer_strip_ghost() {
 #              "Type a message...") that reads as empty; matched both before and
 #              after a leading prompt glyph is stripped, so a pattern written
 #              with or without the glyph both land.
+#   [submitted_text] optional: the text a submit path just typed. When given, a
+#              row that would read `pending` reads `empty` unless the text is
+#              still there (fm_composer_submitted_text_remains), so harness
+#              decoration on the composer row is not mistaken for a swallowed
+#              Enter. A caller with no submit in flight (the away-mode injector's
+#              pending-input guard) omits it and gets the strict verdict.
 fm_composer_idle_matches() {
   local content=$1 idle_re=$2 idle_case=$3
   [ -n "$idle_re" ] || return 1
@@ -179,9 +244,11 @@ fm_composer_idle_matches() {
   esac
 }
 
-fm_composer_classify_content() {  # <bordered> <content> [idle_re] [idle_case] [plain_content]
-  local bordered=$1 content=$2 idle_re=${3:-} idle_case=${4:-sensitive} plain_content
-  plain_content=${5:-$content}
+fm_composer_classify_content() {  # <bordered> <content> [idle_re] [idle_case] [plain_content] [submitted_text]
+  local bordered=$1 content idle_re=${3:-} idle_case=${4:-sensitive} plain_content
+  local submitted_text=${6:-}
+  content=$(fm_composer_normalize_blanks "$2")
+  plain_content=$(fm_composer_normalize_blanks "${5:-$2}")
   if [ "$bordered" != 1 ] && [ -z "$content" ] && [ -n "$plain_content" ]; then
     case "$plain_content" in
       '❯'|'›') printf 'empty'; return 0 ;;
@@ -218,6 +285,12 @@ fm_composer_classify_content() {  # <bordered> <content> [idle_re] [idle_case] [
   if fm_composer_idle_matches "$content" "$idle_re" "$idle_case"; then
     printf 'empty'; return 0
   fi
-  # Real, unsubmitted content remains.
+  # Real content remains. It is only OUR unsubmitted text when a submit path
+  # passed the text it typed and that text is still on the row; otherwise the
+  # row carries the harness's own decoration and the submit landed.
+  if [ -n "$submitted_text" ] \
+     && ! fm_composer_submitted_text_remains "$content" "$submitted_text"; then
+    printf 'empty'; return 0
+  fi
   printf 'pending'; return 0
 }
