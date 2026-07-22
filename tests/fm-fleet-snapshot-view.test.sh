@@ -413,6 +413,53 @@ test_view_renders_dead_secondmate_agent_status() {
   pass "fleet view renders secondmate agent liveness"
 }
 
+# A multi-line HTML comment block in Queued must collapse into one clean
+# unstructured row, not one junk row per line. A standalone single-line
+# comment, isolated between structured rows, is an established convention
+# and must keep rendering exactly as before: as its own single row.
+test_multiline_comment_block_renders_cleanly() {
+  local home fakebin out view queued_count single_row
+  home=$(make_home multiline-comment)
+  mkdir -p "$home/projects/alpha-worktree"
+  cat > "$home/data/backlog.md" <<'EOF'
+## In flight
+
+## Queued
+- [ ] queued-task - Queued Task (repo: alpha) (kind: ship) (since 2026-07-08)
+<!-- standalone single line comment -->
+- [ ] middle-task - Middle Task (repo: alpha) (kind: ship) (since 2026-07-09)
+<!--
+Long-form rationale that spans several lines
+and used to explode into one junk row per line.
+-->
+- [ ] another-task - Another Task (repo: alpha) (kind: ship) (since 2026-07-10)
+
+## Done
+EOF
+  fakebin=$(make_fakebin "$home")
+  out=$(PATH="$fakebin:$PATH" FM_HOME="$home" "$SNAPSHOT" --json)
+  queued_count=$(printf '%s' "$out" | jq '[.backlog.records[] | select(.state == "queued")] | length')
+  [ "$queued_count" = "5" ] ||
+    fail "3 structured rows + 1 single-line comment + 1 collapsed multi-line block expected, got $queued_count: $out"
+  printf '%s' "$out" | jq -e '
+    [.backlog.records[] | select(.state == "queued" and .structured == false)] as $raw
+    | ($raw | length) == 2
+      and ($raw[0].raw == "<!-- standalone single line comment -->")
+      and ($raw[1].raw | contains("Long-form rationale") and contains("explode into one junk row per line"))
+  ' >/dev/null || fail "unexpected unstructured queued records: $out"
+  single_row='| - | <!-- standalone single line comment --> | - | - | - | - |'
+  view=$(PATH="$fakebin:$PATH" FM_HOME="$home" "$VIEW")
+  assert_contains "$view" "$single_row" \
+    "an isolated single-line comment must keep rendering as its own unchanged row"
+  assert_contains "$view" "Long-form rationale that spans several lines" \
+    "view should render the multi-line comment block content"
+  assert_not_contains "$view" $'\n| - | <!-- |' \
+    "view must not render a junk row for just the comment block's opening delimiter"
+  assert_not_contains "$view" $'\n| - | --> |' \
+    "view must not render a junk row for just the comment block's closing delimiter"
+  pass "fleet view collapses a multi-line comment block into one clean queued row"
+}
+
 # A still-open decision must survive a LATER, UNRELATED terminal event on the same
 # append-only stream. This is the fmdev masking bug: last-event-wins read the trailing
 # `done` and reported pending_decision=false while a needs-decision was still open. The
@@ -599,3 +646,4 @@ test_scout_reports_include_teardown_reports
 test_backlog_tasks_axi_forms_and_overrides
 test_view_renders_snapshot
 test_view_renders_dead_secondmate_agent_status
+test_multiline_comment_block_renders_cleanly

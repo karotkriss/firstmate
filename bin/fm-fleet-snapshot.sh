@@ -13,8 +13,11 @@
 #   roots: resolved root/config/data/state/projects directories.
 #   backlog: {path,present,records[]} where records are ordered as written in
 #     data/backlog.md and cover In flight, Queued, and Done.
-#     Canonical tasks-axi rows are structured; free-form non-empty lines in
-#     those sections are preserved as unstructured records.
+#     Canonical tasks-axi rows are structured; a run of consecutive free-form
+#     non-empty lines in those sections (including an HTML comment block) is
+#     preserved as a single unstructured record, mirroring how tasks-axi's own
+#     markdown backend groups consecutive non-bullet lines into one raw entry,
+#     so free-form content never explodes into one record per line.
 #     Structured rows preserve captain-hold metadata such as hold_kind and
 #     hold_reason when tasks-axi emits it.
 #   tasks[]: one row per state/<id>.meta, sorted by id.
@@ -346,13 +349,19 @@ backlog_json() {  # [<backlog-path>] - defaults to this home's $BACKLOG
          ($line | trim) as $body
          | if $body == "" then .
            else .records[-1].body_lines += [$body] end
+       elif ((.records | length) > 0 and (.records[-1].structured == false) and (.records[-1].state == .section)) then
+         .records[-1].raw_lines += [$line]
        else
          .order += 1
-         | .records += [{order:.order,state:.section,structured:false,id:null,raw:$line,body_lines:[],body_excerpt:null}]
+         | .records += [{order:.order,state:.section,structured:false,id:null,raw:$line,raw_lines:[$line],body_lines:[],body_excerpt:null}]
        end)
     | .records |= map(
         if (.body_lines | length) > 0 then
           .body_excerpt = ((.body_lines | join(" "))[:240])
+        else . end)
+    | .records |= map(
+        if .structured == false then
+          .raw = ((.raw_lines | join(" "))[:240]) | del(.raw_lines)
         else . end)
     | del(.section,.order)
   ' < "$backlog"
