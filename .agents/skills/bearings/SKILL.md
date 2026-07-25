@@ -19,7 +19,7 @@ It never tears down a task, merges a pull request or merge request, dispatches n
 1. **Gather live fleet state with one deterministic command.**
    Run `bin/fm-bearings-snapshot.sh` and read its compact output.
    It is the single bounded, deterministic source for this report and renders TOON by default.
-   Do not hand-probe the snapshot schema and do not make ad-hoc `gh-axi`, `glab-axi`, or `gh` calls to assemble fleet facts; this command already assembles them.
+   Do not hand-probe the snapshot schema and do not make ad-hoc `gh-axi`, `glab-axi`, `gh`, or `glab` calls to assemble fleet facts; this command already assembles them.
    The command's header and `--help` output own its exact fields, bounds, opt-ins, and output contract.
    When the captain asks to include or verify forge items, use the command's live-forge opt-in; otherwise keep the default local-only read.
    Never call a recorded pull request or merge request still open, or ready to merge, on the strength of a local record: each `recorded_prs` row carries its own state, and only the live-forge opt-in resolves it against the forge.
