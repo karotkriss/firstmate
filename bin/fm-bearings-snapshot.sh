@@ -179,13 +179,15 @@ command -v jq >/dev/null 2>&1 || { echo "fm-bearings-snapshot: jq not found" >&2
 # --argjson, so it has no MAX_ARG_STRLEN ceiling as the fleet's backlog grows.
 RECORDED_PR_STATES_FILE=$(mktemp "${TMPDIR:-/tmp}/fm-bearings-snapshot.XXXXXX") \
   || { echo "fm-bearings-snapshot: scratch file unavailable" >&2; exit 1; }
+CANDIDATE_PRS_FILE=$(mktemp "${TMPDIR:-/tmp}/fm-bearings-snapshot.XXXXXX") \
+  || { rm -f "$RECORDED_PR_STATES_FILE"; echo "fm-bearings-snapshot: scratch file unavailable" >&2; exit 1; }
 cleanup() {
   local pid
   for pid in ${VERIFY_PIDS:-}; do
     kill "$pid" 2>/dev/null || :
     wait "$pid" 2>/dev/null || :
   done
-  rm -f "$RECORDED_PR_STATES_FILE" "$RECORDED_PR_STATES_FILE".*
+  rm -f "$RECORDED_PR_STATES_FILE" "$RECORDED_PR_STATES_FILE".* "$CANDIDATE_PRS_FILE"
 }
 trap cleanup EXIT
 
@@ -209,7 +211,6 @@ HOME_LABEL=$(printf '%s' "$SNAP" | jq -er '.fm_home | strings | split("/") | (.[
 
 # --- optional live PR enrichment (the ONLY network path) --------------------
 PR_STATUS='not_requested (run: /bearings include PRs)'
-CANDIDATE_PRS='[]'
 PR_REPOS_TOTAL=0
 PR_REPOS_SHOWN=0
 PR_ROWS_CAPPED=0
@@ -336,7 +337,7 @@ $(printf '%s' "$SNAP" | jq -r '.tasks[] | select(.kind != "secondmate") | .paths
 EOF
 
     for repo in $repos; do PR_REPOS_TOTAL=$((PR_REPOS_TOTAL + 1)); done
-    nrepos=0; npr=0; nwarn=0; ncapped=0; rows='[]'
+    nrepos=0; npr=0; nwarn=0; ncapped=0
     pr_fetch_limit=$((FM_BEARINGS_PR_LIMIT + 1))
     for repo in $repos; do
       if [ "$ALL_PR_REPOS" != 1 ] && [ "$nrepos" -ge "$FM_BEARINGS_PR_REPOS" ]; then break; fi
@@ -365,12 +366,11 @@ EOF
       cnt=$(printf '%s' "$repo_rows" | jq 'length')
       [ "$returned" -gt "$FM_BEARINGS_PR_LIMIT" ] && ncapped=$((ncapped + 1))
       npr=$((npr + cnt))
-      rows=$(jq -n --argjson a "$rows" --argjson b "$repo_rows" '$a + $b')
+      printf '%s\n' "$repo_rows" >> "$CANDIDATE_PRS_FILE"
     done
     PR_REPOS_SHOWN=$nrepos
     PR_ROWS_CAPPED=$ncapped
     PR_ROWS_MIN_TOTAL=$((npr + ncapped))
-    CANDIDATE_PRS=$rows
     warnnote=""
     [ "$nwarn" -gt 0 ] && warnnote="; ${nwarn} repo(s) unavailable"
     cappednote=""
@@ -453,7 +453,7 @@ MODEL=$(printf '%s' "$SNAP" | jq \
   --argjson pr_repos_shown "$PR_REPOS_SHOWN" \
   --argjson pr_rows_capped "$PR_ROWS_CAPPED" \
   --argjson pr_rows_min_total "$PR_ROWS_MIN_TOTAL" \
-  --argjson candidate_prs "$CANDIDATE_PRS" \
+  --slurpfile candidate_pr_groups "$CANDIDATE_PRS_FILE" \
   --slurpfile recorded_pr_states "$RECORDED_PR_STATES_FILE" '
   def trunc($n): if . == null then null else
     (tostring | gsub("\\s+"; " ") | if (length > $n) then (.[:$n] + "…") else . end) end;
@@ -463,7 +463,8 @@ MODEL=$(printf '%s' "$SNAP" | jq \
        | $groups[]
        | select(length > $i)
        | .[$i]][:$n];
-  ($fields | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))) as $fl
+  ($candidate_pr_groups | add // []) as $candidate_prs
+  | ($fields | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))) as $fl
   | (($fl | index("bodies")) != null) as $f_bodies
   | (($fl | index("paths")) != null) as $f_paths
   | (($fl | index("actions")) != null) as $f_actions
