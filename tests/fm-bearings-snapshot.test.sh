@@ -61,6 +61,7 @@ SH
 #!/usr/bin/env bash
 echo "gh-axi $*" >> "$NET_LOG"
 [ "${FAKE_GH_FAIL:-0}" = 1 ] && exit 1
+[ "${FAKE_VERIFY_SLEEP:-0}" = 1 ] && sleep 30
 case "$*" in
   *pulls/701) printf 'merged: true\nstate: closed\ntitle: "Landed already"\n' ;;
   *pulls/702) printf 'merged: false\nstate: open\ntitle: "Still open"\n' ;;
@@ -73,6 +74,7 @@ SH
 #!/usr/bin/env bash
 echo "glab-axi $*" >> "$NET_LOG"
 [ "${FAKE_GLAB_FAIL:-0}" = 1 ] && exit 1
+[ "${FAKE_VERIFY_SLEEP:-0}" = 1 ] && sleep 30
 case "$*" in
   *merge_requests/801*) printf 'merged\n' ;;
   *merge_requests/802*) printf 'opened\n' ;;
@@ -1058,6 +1060,23 @@ test_recorded_items_are_not_checked_by_default() {
   pass "the local-only default marks every recorded item not_checked without a network call"
 }
 
+test_recorded_item_verification_has_one_total_deadline() {
+  local home fakebin json started elapsed
+  home=$(make_home recorded-deadline); write_recorded_pr_fixture "$home"
+  fakebin=$(make_fakebin "$home"); : > "$home/net.log"
+  started=$(date +%s)
+  json=$(FM_BEARINGS_PR_TIMEOUT=1 FAKE_VERIFY_SLEEP=1 run "$home" "$fakebin" --include-prs --json)
+  elapsed=$(( $(date +%s) - started ))
+  [ "$elapsed" -lt 4 ] || fail "recorded-item verification exceeded its total deadline (${elapsed}s)"
+  printf '%s' "$json" | jq -e '
+    (.recorded_prs | length) == 7
+    and all(.recorded_prs[]; .state | startswith("unverified"))
+    and any(.recorded_prs[]; .state == "unverified: verification deadline exceeded")
+    and (.prs | test("recorded items: 0 verified, 7 unverified"))
+  ' >/dev/null || fail "the total deadline must retain an explicit state for every recorded item: $json"
+  pass "recorded-item verification shares one deadline and retains every item"
+}
+
 test_partial_github_failure_degrades() {
   local home fakebin json rc
   home=$(make_home partial); write_fixture "$home"
@@ -1079,7 +1098,7 @@ test_perl_fallback_bounds_github_call() {
   fakebin=$(make_fakebin "$home")
   toolbin="$home/toolbin"
   mkdir -p "$toolbin"
-  for cmd in bash dirname basename jq date sed git grep tail cut tr head sort wc perl sleep cat find mktemp; do
+  for cmd in bash dirname basename jq date sed git grep tail cut tr head sort wc perl sleep cat find mktemp rm; do
     ln -s "$(command -v "$cmd")" "$toolbin/$cmd"
   done
   started=$(date +%s)
@@ -2027,6 +2046,7 @@ test_superseded_queued_item_dropped_by_default
 test_include_prs_is_the_only_fetch_path
 test_recorded_items_are_verified_on_both_forges
 test_recorded_items_are_not_checked_by_default
+test_recorded_item_verification_has_one_total_deadline
 test_partial_github_failure_degrades
 test_perl_fallback_bounds_github_call
 test_section_caps_and_expansion_flags

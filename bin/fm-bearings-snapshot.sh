@@ -179,7 +179,15 @@ command -v jq >/dev/null 2>&1 || { echo "fm-bearings-snapshot: jq not found" >&2
 # --argjson, so it has no MAX_ARG_STRLEN ceiling as the fleet's backlog grows.
 RECORDED_PR_STATES_FILE=$(mktemp "${TMPDIR:-/tmp}/fm-bearings-snapshot.XXXXXX") \
   || { echo "fm-bearings-snapshot: scratch file unavailable" >&2; exit 1; }
-trap 'rm -f "$RECORDED_PR_STATES_FILE"' EXIT
+cleanup() {
+  local pid
+  for pid in ${VERIFY_PIDS:-}; do
+    kill "$pid" 2>/dev/null || :
+    wait "$pid" 2>/dev/null || :
+  done
+  rm -f "$RECORDED_PR_STATES_FILE" "$RECORDED_PR_STATES_FILE".*
+}
+trap cleanup EXIT
 
 # The deterministic return-catch-up owner must clear before this or any other
 # ordinary captain request proceeds. Bearings does not reproduce that policy;
@@ -214,12 +222,13 @@ repo_slug() {  # <url>
 
 # Bounded network call; prints stdout, non-zero on timeout/failure.
 net_bounded() {  # <command> <args...>
+  local timeout_seconds=${FM_BEARINGS_NET_TIMEOUT:-$FM_BEARINGS_PR_TIMEOUT}
   if command -v timeout >/dev/null 2>&1; then
-    GH_PROMPT_DISABLED=1 GH_NO_UPDATE_NOTIFIER=1 timeout "$FM_BEARINGS_PR_TIMEOUT" "$@"
+    GH_PROMPT_DISABLED=1 GH_NO_UPDATE_NOTIFIER=1 timeout "$timeout_seconds" "$@"
   elif command -v gtimeout >/dev/null 2>&1; then
-    GH_PROMPT_DISABLED=1 GH_NO_UPDATE_NOTIFIER=1 gtimeout "$FM_BEARINGS_PR_TIMEOUT" "$@"
+    GH_PROMPT_DISABLED=1 GH_NO_UPDATE_NOTIFIER=1 gtimeout "$timeout_seconds" "$@"
   elif command -v perl >/dev/null 2>&1; then
-    GH_PROMPT_DISABLED=1 GH_NO_UPDATE_NOTIFIER=1 perl -e 'my $t = shift; my $pid = fork; die "fork failed" unless defined $pid; if (!$pid) { setpgrp(0, 0); exec @ARGV } local $SIG{ALRM} = sub { kill "TERM", -$pid; select undef, undef, undef, 0.2; kill "KILL", -$pid; exit 124 }; alarm $t; waitpid $pid, 0; exit($? >> 8)' "$FM_BEARINGS_PR_TIMEOUT" "$@"
+    GH_PROMPT_DISABLED=1 GH_NO_UPDATE_NOTIFIER=1 perl -e 'my $t = shift; my $pid = fork; die "fork failed" unless defined $pid; if (!$pid) { setpgrp(0, 0); exec @ARGV } local $SIG{ALRM} = sub { kill "TERM", -$pid; select undef, undef, undef, 0.2; kill "KILL", -$pid; exit 124 }; alarm $t; waitpid $pid, 0; exit($? >> 8)' "$timeout_seconds" "$@"
   else
     return 124
   fi
@@ -280,6 +289,27 @@ verify_recorded_pr() {  # <url>
       ;;
     *) printf 'unverified: unrecognized forge' ;;
   esac
+}
+
+record_pr_state() {  # <id> <state>
+  local id=$1 state=$2
+  case "$state" in unverified*) nunverified=$((nunverified + 1)) ;; *) nverified=$((nverified + 1)) ;; esac
+  jq -n --arg id "$id" --arg state "$state" '{id:$id,state:$state}' >> "$RECORDED_PR_STATES_FILE"
+}
+
+collect_recorded_batch() {
+  local i state
+  for ((i=0; i<${#batch_pids[@]}; i++)); do
+    wait "${batch_pids[$i]}" 2>/dev/null || :
+    state=$(< "${batch_files[$i]}")
+    [ -n "$state" ] || state='unverified: verification deadline exceeded'
+    record_pr_state "${batch_ids[$i]}" "$state"
+    rm -f "${batch_files[$i]}"
+  done
+  batch_ids=()
+  batch_files=()
+  batch_pids=()
+  VERIFY_PIDS=''
 }
 
 if [ "$INCLUDE_PRS" = 1 ]; then
@@ -357,19 +387,39 @@ EOF
   # "is THIS recorded item still open", which is the question a stale local
   # record gets wrong. It runs even when the discovery path is unavailable, and
   # it covers the same items the projection will show, in the same order.
-  nverified=0; nunverified=0
+  nverified=0; nunverified=0; recorded_total=0
+  verification_deadline=$((SECONDS + FM_BEARINGS_PR_TIMEOUT))
+  batch_ids=()
+  batch_files=()
+  batch_pids=()
+  VERIFY_PIDS=''
   while IFS="$(printf '\t')" read -r rid rurl; do
     [ -n "$rid" ] && [ -n "$rurl" ] || continue
     if [ "$ALL_RECORDED_PRS" != 1 ] \
-       && [ $((nverified + nunverified)) -ge "$FM_BEARINGS_RECORDED_PRS" ]; then break; fi
-    rstate=$(verify_recorded_pr "$rurl")
-    case "$rstate" in unverified*) nunverified=$((nunverified + 1)) ;; *) nverified=$((nverified + 1)) ;; esac
-    jq -n --arg id "$rid" --arg state "$rstate" '{id:$id,state:$state}' >> "$RECORDED_PR_STATES_FILE"
+       && [ "$recorded_total" -ge "$FM_BEARINGS_RECORDED_PRS" ]; then break; fi
+    recorded_total=$((recorded_total + 1))
+    remaining=$((verification_deadline - SECONDS))
+    if [ "$remaining" -le 0 ]; then
+      record_pr_state "$rid" 'unverified: verification deadline exceeded'
+      continue
+    fi
+    result_file="${RECORDED_PR_STATES_FILE}.${recorded_total}"
+    FM_BEARINGS_NET_TIMEOUT=$remaining verify_recorded_pr "$rurl" > "$result_file" &
+    batch_ids+=("$rid")
+    batch_files+=("$result_file")
+    batch_pids+=("$!")
+    VERIFY_PIDS="${VERIFY_PIDS}${VERIFY_PIDS:+ }$!"
+    if [ "${#batch_pids[@]}" -ge 4 ]; then
+      collect_recorded_batch
+    fi
   done <<EOF
 $(printf '%s' "$SNAP" | jq -r '.tasks[]
   | select(.kind != "secondmate" and .pr.url != null and .pr.source == "meta")
   | [.id, .pr.url] | @tsv')
 EOF
+  if [ "${#batch_pids[@]}" -gt 0 ]; then
+    collect_recorded_batch
+  fi
   if [ $((nverified + nunverified)) -gt 0 ]; then
     PR_STATUS="${PR_STATUS}; recorded items: ${nverified} verified, ${nunverified} unverified"
   fi
