@@ -118,7 +118,7 @@ Default is LOCAL-ONLY (no network); --include-prs is the only path that fetches.
 Default fields: schema, home, generated, prs, in_flight{id,kind,state,doing},
   secondmates{id,state,doing,provenance,freshness,age_seconds,contradiction,reason},
   decisions_open{id,key,verb,summary,owner}, landed{id,what,artifact,owner},
-  gates{id,title,blocked_by,reason,owner}, reports{id,path}, recorded_prs{id,url},
+  gates{id,title,blocked_by,reason,owner}, reports{id,path}, recorded_prs{id,url,state},
   unhealthy_endpoints{...} (only when non-empty), omitted{surface,reveal}.
 recorded_prs{id,url,state} where state is not_checked, merged, open, closed, or
   "unverified: <reason>".
@@ -173,6 +173,14 @@ done
 
 command -v jq >/dev/null 2>&1 || { echo "fm-bearings-snapshot: jq not found" >&2; exit 1; }
 
+# recorded_pr_states grows one small object per recorded item and reaches the
+# final jq unbounded (uncapped under --all-recorded-prs). Like fm-fleet-snapshot.sh's
+# jq_doc, it travels through a scratch file and --slurpfile, never through
+# --argjson, so it has no MAX_ARG_STRLEN ceiling as the fleet's backlog grows.
+RECORDED_PR_STATES_FILE=$(mktemp "${TMPDIR:-/tmp}/fm-bearings-snapshot.XXXXXX") \
+  || { echo "fm-bearings-snapshot: scratch file unavailable" >&2; exit 1; }
+trap 'rm -f "$RECORDED_PR_STATES_FILE"' EXIT
+
 # The deterministic return-catch-up owner must clear before this or any other
 # ordinary captain request proceeds. Bearings does not reproduce that policy;
 # it only consults the shared read-only gate.
@@ -194,7 +202,6 @@ HOME_LABEL=$(printf '%s' "$SNAP" | jq -er '.fm_home | strings | split("/") | (.[
 # --- optional live PR enrichment (the ONLY network path) --------------------
 PR_STATUS='not_requested (run: /bearings include PRs)'
 CANDIDATE_PRS='[]'
-RECORDED_PR_STATES='[]'
 PR_REPOS_TOTAL=0
 PR_REPOS_SHOWN=0
 PR_ROWS_CAPPED=0
@@ -357,8 +364,7 @@ EOF
        && [ $((nverified + nunverified)) -ge "$FM_BEARINGS_RECORDED_PRS" ]; then break; fi
     rstate=$(verify_recorded_pr "$rurl")
     case "$rstate" in unverified*) nunverified=$((nunverified + 1)) ;; *) nverified=$((nverified + 1)) ;; esac
-    RECORDED_PR_STATES=$(jq -n --argjson a "$RECORDED_PR_STATES" --arg id "$rid" --arg state "$rstate" \
-      '$a + [{id:$id,state:$state}]')
+    jq -n --arg id "$rid" --arg state "$rstate" '{id:$id,state:$state}' >> "$RECORDED_PR_STATES_FILE"
   done <<EOF
 $(printf '%s' "$SNAP" | jq -r '.tasks[]
   | select(.kind != "secondmate" and .pr.url != null and .pr.source == "meta")
@@ -398,7 +404,7 @@ MODEL=$(printf '%s' "$SNAP" | jq \
   --argjson pr_rows_capped "$PR_ROWS_CAPPED" \
   --argjson pr_rows_min_total "$PR_ROWS_MIN_TOTAL" \
   --argjson candidate_prs "$CANDIDATE_PRS" \
-  --argjson recorded_pr_states "$RECORDED_PR_STATES" '
+  --slurpfile recorded_pr_states "$RECORDED_PR_STATES_FILE" '
   def trunc($n): if . == null then null else
     (tostring | gsub("\\s+"; " ") | if (length > $n) then (.[:$n] + "…") else . end) end;
   def round_robin_landed($n):
