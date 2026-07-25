@@ -174,6 +174,22 @@ esac
 
 command -v jq >/dev/null 2>&1 || { echo "fm-fleet-snapshot: jq not found" >&2; exit 1; }
 
+# Whole documents reach jq through files, never through --argjson. An --argjson
+# value travels in the exec argument list, which the kernel caps per argument
+# (MAX_ARG_STRLEN, 128 KiB on Linux), so a real backlog aborts the entire
+# snapshot with "Argument list too long"; a file has no such cap and the bound
+# does not depend on how large the fleet's records grow. Fixed-size scalars and
+# booleans stay on argv. jq_doc prints the scratch path for --slurpfile <name>,
+# and the filter unwraps that one-element array with `$<name>[0] as $<name>`.
+JQ_DOC_DIR=$(mktemp -d "${TMPDIR:-/tmp}/fm-fleet-snapshot.XXXXXX") \
+  || { echo "fm-fleet-snapshot: scratch directory unavailable" >&2; exit 1; }
+trap 'rm -rf "$JQ_DOC_DIR"' EXIT
+jq_doc() {  # <name> <json>
+  [ -n "$2" ] || return 1
+  printf '%s' "$2" > "$JQ_DOC_DIR/$1.json" || return 1
+  printf '%s' "$JQ_DOC_DIR/$1.json"
+}
+
 bool_json() {
   if [ "$1" = 1 ]; then printf 'true'; else printf 'false'; fi
 }
@@ -565,8 +581,11 @@ task_json_lines() {
 # discloses backlog↔task inconsistency for renderers (Bearings omitted/gates).
 main_inventory_json() {  # <backlog-json> <tasks-json>
   jq -n \
-    --argjson backlog "$1" \
-    --argjson tasks "$2" '
+    --slurpfile backlog "$(jq_doc main_inventory_backlog "$1")" \
+    --slurpfile tasks "$(jq_doc main_inventory_tasks "$2")" '
+    $backlog[0] as $backlog
+    | $tasks[0] as $tasks
+    |
     ([ $backlog.records[]?
        | select((.state == "in_flight" or .state == "queued") and (.structured | not)) ]) as $unstructured_current
     | ([ $backlog.records[]?
@@ -599,11 +618,12 @@ secondmate_home_summary_json() {  # <backlog-json> <tasks-json>
     --argjson queued_n "$FM_SNAPSHOT_SECONDMATE_QUEUED" \
     --argjson decisions_n "$FM_SNAPSHOT_SECONDMATE_DECISIONS" \
     --argjson landed_n "$FM_SNAPSHOT_SECONDMATE_LANDED_PER_HOME" \
-    --argjson backlog "$1" \
-    --argjson tasks "$2" '
+    --slurpfile backlog "$(jq_doc backlog "$1")" \
+    --slurpfile tasks "$(jq_doc tasks "$2")" '
     def trunc($n):
       tostring | gsub("\\s+"; " ")
       | if length > $n then .[:$n] + "…" else . end;
+    $backlog[0] as $backlog | $tasks[0] as $tasks |
     ([ $backlog.records[]?
        | select((.state == "in_flight" or .state == "queued") and (.structured | not)) ]) as $unstructured_current
     | ([ $backlog.records[]? | select(.state == "in_flight" and .structured) ]) as $owned_in_flight
@@ -1011,7 +1031,8 @@ terminal_evidence_json() {  # <parent-task-json> <event-note> <evidence-contradi
 }
 
 parent_evidence_reconciliation_json() {  # <summary-json> <activities-json> <decisions-json>
-  jq -n --argjson summary "$1" --argjson activities "$2" --argjson decisions "$3" '
+  jq -n --slurpfile summary "$(jq_doc summary "$1")" \
+    --argjson activities "$2" --argjson decisions "$3" '
     def keyed: . != null and . != "" and . != "default";
     def result($e; $matches; $complete; $surface):
       $e + {
@@ -1022,6 +1043,7 @@ parent_evidence_reconciliation_json() {  # <summary-json> <activities-json> <dec
         compared_to:$surface,
         matched:(if ($e.key | keyed) then ($matches[0] // null) else null end)
       };
+    $summary[0] as $summary |
     ([ $activities[] as $e
        | if $e.verb == "working" then
            ([ $summary.active_children[]
@@ -1076,8 +1098,11 @@ secondmate_current_json() {  # <parent-tasks-json>
   local activity_scan activities decisions reconciliation provenance freshness reason summary summary_rc summary_bytes summary_valid summary_reason summary_invalidity state current_reason terminal terminal_contradiction contradiction
   local records='[]' seen_homes=''
   registry=$(registry_secondmates_json) || return 1
-  union=$(jq -n --argjson registry "$registry" --argjson tasks "$tasks" '
-    ($registry.records // []) as $registered
+  union=$(jq -n --slurpfile registry "$(jq_doc registry "$registry")" \
+    --slurpfile tasks "$(jq_doc tasks "$tasks")" '
+    $registry[0] as $registry
+    | $tasks[0] as $tasks
+    | ($registry.records // []) as $registered
     | (($registered | map(.id)) // []) as $registered_ids
     | ([ $registered[] as $r
          | $r + {parent_task:([$tasks[] | select(.id == $r.id)][0] // null)} ]
@@ -1202,10 +1227,11 @@ secondmate_current_json() {  # <parent-tasks-json>
       if printf '%s' "$terminal" | jq -e '.contradiction == true' >/dev/null; then contradiction=true; fi
       record=$(jq -n \
         --arg id "$id" --arg home "$home" --arg state "$state" --arg current_reason "$current_reason" --arg observed "$SNAPSHOT_NOW" \
-        --argjson registered "$registered" --argjson summary "$summary" --argjson summary_valid "$summary_valid" --argjson decisions "$decisions" \
+        --argjson registered "$registered" --slurpfile summary "$(jq_doc summary "$summary")" --argjson summary_valid "$summary_valid" --argjson decisions "$decisions" \
         --argjson activities "$activities" --argjson activity_scan "$activity_scan" \
         --argjson reconciliation "$reconciliation" --argjson terminal "$terminal" --argjson contradiction "$contradiction" \
         --arg event_raw "$event_raw" --arg event_note "$event_note" --argjson event_age "$event_age" '
+        $summary[0] as $summary |
         {id:$id,home:$home,registered:$registered,
          current:{state:$state,reason:($current_reason | if . == "" then null else . end)},invalidity:$summary.invalidity,
          provenance:{selected:"structured-home",structured_home:$home,summary_valid:$summary_valid,
@@ -1243,22 +1269,24 @@ secondmate_current_json() {  # <parent-tasks-json>
          parent_event:{raw:$event_raw,note:$event_note,age_seconds:$event_age,open_activities:$activities,open_decisions:$decisions,activity_scan:$activity_scan},
          terminal_evidence:$terminal,contradiction:false}')
     fi
-    records=$(jq -n --argjson records "$records" --argjson record "$record" '$records + [$record]')
+    records=$(jq -n --slurpfile records "$(jq_doc records "$records")" \
+      --slurpfile record "$(jq_doc record "$record")" '$records[0] + [$record[0]]')
   done <<EOF
 $rows
 EOF
   jq -n \
     --argjson registry "$(printf '%s' "$union" | jq '.registry')" \
-    --argjson records "$records" \
+    --slurpfile records "$(jq_doc records "$records")" \
     --argjson total_registered "$total_registered" \
     --argjson total "$total" \
     --argjson shown "$shown" \
     --argjson truncated "$truncated" \
-    '{registry:$registry,records:$records,total_registered:$total_registered,total:$total,shown:$shown,truncated:$truncated}'
+    '{registry:$registry,records:$records[0],total_registered:$total_registered,total:$total,shown:$shown,truncated:$truncated}'
 }
 
 secondmate_landed_from_current_json() {  # <secondmate-current-json>
-  jq -n --argjson current "$1" '
+  jq -n --slurpfile current "$(jq_doc current "$1")" '
+    $current[0] as $current |
     {records:[ $current.records[]
       | select(.provenance.selected == "structured-home") as $mate
       | $mate.landed[]
@@ -1315,13 +1343,19 @@ jq -n \
   --arg data "$DATA" \
   --arg config "$CONFIG" \
   --arg projects "$PROJECTS" \
-  --argjson backlog "$BACKLOG_JSON" \
-  --argjson tasks "$TASKS_JSON" \
-  --argjson main_inventory "$MAIN_INVENTORY_JSON" \
-  --argjson scout_reports "$SCOUT_REPORTS_JSON" \
-  --argjson secondmate_current "$SECONDMATE_CURRENT_JSON" \
-  --argjson secondmate_landed "$SECONDMATE_LANDED_JSON" \
-  'def backlog_by_id($id): ($backlog.records[]? | select(.structured == true and .id == $id) | .) // null;
+  --slurpfile backlog "$(jq_doc backlog "$BACKLOG_JSON")" \
+  --slurpfile tasks "$(jq_doc tasks "$TASKS_JSON")" \
+  --slurpfile main_inventory "$(jq_doc main_inventory "$MAIN_INVENTORY_JSON")" \
+  --slurpfile scout_reports "$(jq_doc scout_reports "$SCOUT_REPORTS_JSON")" \
+  --slurpfile secondmate_current "$(jq_doc secondmate_current "$SECONDMATE_CURRENT_JSON")" \
+  --slurpfile secondmate_landed "$(jq_doc secondmate_landed "$SECONDMATE_LANDED_JSON")" \
+  '$backlog[0] as $backlog
+   | $tasks[0] as $tasks
+   | $main_inventory[0] as $main_inventory
+   | $scout_reports[0] as $scout_reports
+   | $secondmate_current[0] as $secondmate_current
+   | $secondmate_landed[0] as $secondmate_landed
+   | def backlog_by_id($id): ($backlog.records[]? | select(.structured == true and .id == $id) | .) // null;
    def task_by_id($id): ($tasks[]? | select(.id == $id) | .) // null;
    def report_kind($id): (task_by_id($id).kind // backlog_by_id($id).kind // "scout");
    {

@@ -43,6 +43,18 @@ SH
 #!/usr/bin/env bash
 echo "gh $*" >> "$NET_LOG"
 if [ "${FAKE_GH_FAIL:-0}" = 1 ]; then exit 1; fi
+# Per-item verification: `gh pr view <n> --repo <slug> --json state,mergedAt`.
+# Real gh prints JSON with an uppercase state, and exits non-zero when it cannot
+# resolve the pull request.
+if [ "${1:-}" = pr ] && [ "${2:-}" = view ]; then
+  [ "${FAKE_VERIFY_SLEEP:-0}" = 1 ] && sleep 30
+  case "${3:-}" in
+    701) printf '{"mergedAt":"2026-07-25T09:08:20Z","state":"MERGED"}\n' ;;
+    702) printf '{"mergedAt":null,"state":"OPEN"}\n' ;;
+    *) exit 1 ;;
+  esac
+  exit 0
+fi
 if [ "${FAKE_GH_SLEEP:-0}" = 1 ]; then sleep 30; fi
 if [ "${FAKE_GH_MANY:-0}" = 1 ]; then
   cat <<'JSON'
@@ -54,18 +66,36 @@ cat <<'JSON'
 [{"number":9,"title":"Ship the thing","url":"https://github.com/kunchenguid/firstmate/pull/9","headRefName":"fm/ship-task","reviewDecision":"APPROVED","mergeable":"MERGEABLE","statusCheckRollup":[{"conclusion":"SUCCESS","status":"COMPLETED"}]}]
 JSON
 SH
-  cat > "$fb/gh-axi" <<'SH'
+  # `glab` answers `mr view <iid> -R <slug> --output json` with GitLab's own
+  # lowercase state vocabulary, and exits non-zero for a merge request it cannot read.
+  cat > "$fb/glab" <<'SH'
 #!/usr/bin/env bash
-echo "gh-axi $*" >> "$NET_LOG"
-[ "${FAKE_GH_FAIL:-0}" = 1 ] && exit 1
+echo "glab $*" >> "$NET_LOG"
+[ "${FAKE_GLAB_FAIL:-0}" = 1 ] && exit 1
+[ "${FAKE_VERIFY_SLEEP:-0}" = 1 ] && sleep 30
+case "$*" in
+  "mr view 801 "*) printf '{"iid":801,"state":"merged","merged_at":"2026-07-25T11:34:43Z"}\n' ;;
+  "mr view 802 "*) printf '{"iid":802,"state":"opened","merged_at":null}\n' ;;
+  *) exit 1 ;;
+esac
 exit 0
 SH
+  # Tripwires: shipped code must depend on the OFFICIAL CLIs, not these wrappers.
+  # They log and fail so any accidental reintroduction shows up in $NET_LOG.
+  for wrapper in gh-axi glab-axi; do
+    cat > "$fb/$wrapper" <<SH
+#!/usr/bin/env bash
+echo "$wrapper \$*" >> "\$NET_LOG"
+exit 1
+SH
+    chmod +x "$fb/$wrapper"
+  done
   cat > "$fb/curl" <<'SH'
 #!/usr/bin/env bash
 echo "curl $*" >> "$NET_LOG"
 exit 1
 SH
-  chmod +x "$fb/no-mistakes" "$fb/tmux" "$fb/gh" "$fb/gh-axi" "$fb/curl"
+  chmod +x "$fb/no-mistakes" "$fb/tmux" "$fb/gh" "$fb/glab" "$fb/curl"
   printf '%s\n' "$fb"
 }
 
@@ -868,7 +898,8 @@ test_default_is_bounded_and_local_only() {
   [ ! -s "$home/net.log" ] || fail "default run must make no gh/gh-axi call, got: $(cat "$home/net.log")"
   # Definitive not-requested PR state, never a silent omission.
   assert_contains "$toon" 'prs: "not_requested' "default must state PR checks were not requested"
-  assert_contains "$toon" "live PR discovery + checks,\"--include-prs\"" "omitted must mark the dropped live-PR surface"
+  assert_contains "$toon" "live PR discovery + per-item recorded PR/MR verification,\"--include-prs\"" \
+    "omitted must mark the dropped live-PR surface"
   # Valid JSON, correct schema.
   printf '%s' "$json" | jq -e '.schema == "fm-bearings.v1"' >/dev/null || fail "json schema wrong"
   pass "default output is bounded, local-only, and marks omitted surfaces"
@@ -959,6 +990,105 @@ test_include_prs_is_the_only_fetch_path() {
   pass "--include-prs is the only path that fetches, and it enriches correctly"
 }
 
+# One recorded item per outcome, across both forges plus a forge neither tool owns.
+write_recorded_pr_fixture() {  # <home>
+  local home=$1 id url
+  printf '## In flight\n' > "$home/data/backlog.md"
+  for id in gh-merged:https://github.com/acme/repo/pull/701 \
+            gh-open:https://github.com/acme/repo/pull/702 \
+            gh-gone:https://github.com/acme/repo/pull/703 \
+            gl-merged:https://gitlab.example.com/grp/proj/-/merge_requests/801 \
+            gl-open:https://gitlab.example.com/grp/proj/-/merge_requests/802 \
+            gl-gone:https://gitlab.example.com/grp/proj/-/merge_requests/803 \
+            alien:https://bitbucket.example.com/grp/proj/pr/9; do
+    url=${id#*:}
+    id=${id%%:*}
+    printf -- '- [ ] %s - Delivery %s (repo: proj) (kind: ship) (since 2026-07-11)\n' "$id" "$id" \
+      >> "$home/data/backlog.md"
+    mkdir -p "$home/projects/$id"
+    fm_write_meta "$home/state/$id.meta" \
+      "window=firstmate:fm-$id" "worktree=$home/projects/$id" "project=proj" \
+      "harness=codex" "kind=ship" "mode=no-mistakes" "pr=$url"
+    printf 'working: delivering %s\n' "$id" > "$home/state/$id.status"
+  done
+  printf '\n## Queued\n\n## Done\n' >> "$home/data/backlog.md"
+}
+
+# The incident this surface exists to prevent: a merge request reported as ready to
+# merge because a worker's earlier status line said so, when the forge had already
+# merged it. Every recorded item therefore carries its own resolved state, and an
+# item that could not be resolved says so instead of vanishing into "still open".
+test_recorded_items_are_verified_on_both_forges() {
+  local home fakebin json toon
+  home=$(make_home recorded-forges); write_recorded_pr_fixture "$home"
+  fakebin=$(make_fakebin "$home"); : > "$home/net.log"
+  json=$(run "$home" "$fakebin" --include-prs --json)
+
+  # Positive first: a resolved item reports the forge's answer, not the local record.
+  printf '%s' "$json" | jq -e '
+    ([.recorded_prs[] | select(.id == "gh-merged")] | .[0].state) == "merged"
+    and ([.recorded_prs[] | select(.id == "gh-open")] | .[0].state) == "open"
+    and ([.recorded_prs[] | select(.id == "gl-merged")] | .[0].state) == "merged"
+    and ([.recorded_prs[] | select(.id == "gl-open")] | .[0].state) == "open"
+  ' >/dev/null || fail "verified items must report the forge's own answer: $json"
+  # Each forge is resolved through its OWN official CLI, at the same dependency
+  # level the discovery path already uses, and never through a third-party wrapper.
+  grep -q '^glab mr view 801 -R gitlab.example.com/grp/proj --output json$' \
+    "$home/net.log" || fail "GitLab items must be resolved through glab: $(cat "$home/net.log")"
+  grep -q '^gh pr view 701 --repo acme/repo --json state,mergedAt$' "$home/net.log" \
+    || fail "GitHub items must be resolved through gh: $(cat "$home/net.log")"
+  grep -qE '^(gh|glab)-axi ' "$home/net.log" \
+    && fail "shipped code must not call an axi wrapper: $(cat "$home/net.log")"
+
+  # Only then the negative: an unresolvable item is unverified per item, never silent.
+  printf '%s' "$json" | jq -e '
+    ([.recorded_prs[] | select(.id == "gh-gone")] | .[0].state | startswith("unverified"))
+    and ([.recorded_prs[] | select(.id == "gl-gone")] | .[0].state) == "unverified: GitLab read failed"
+    and ([.recorded_prs[] | select(.id == "alien")] | .[0].state) == "unverified: unrecognized forge"
+    and ([.recorded_prs[] | select(.state == null or .state == "")] | length) == 0
+    and (.prs | test("recorded items: 4 verified, 3 unverified"))
+    and ([.omitted[].surface] | any(test("discovery covers GitHub only")))
+  ' >/dev/null || fail "unresolvable items must read as unverified per item: $json"
+
+  toon=$(run "$home" "$fakebin" --include-prs)
+  assert_contains "$toon" 'recorded_prs[7]{id,url,state}' "TOON dropped the per-item verification column"
+  assert_contains "$toon" 'unverified: unrecognized forge' "TOON dropped an unverified state"
+  pass "recorded items are verified per item on both forges, and unverifiable ones say so"
+}
+
+# The local-only default must still make zero network calls, and must not let that
+# silence read as "still open" either.
+test_recorded_items_are_not_checked_by_default() {
+  local home fakebin json
+  home=$(make_home recorded-default); write_recorded_pr_fixture "$home"
+  fakebin=$(make_fakebin "$home"); : > "$home/net.log"
+  json=$(run "$home" "$fakebin" --json)
+  printf '%s' "$json" | jq -e '
+    (.recorded_prs | length) == 7
+    and all(.recorded_prs[]; .state == "not_checked")
+    and ([.omitted[] | select(.reveal == "--include-prs")] | length) == 1
+  ' >/dev/null || fail "the default must mark every recorded item not_checked: $json"
+  [ ! -s "$home/net.log" ] || fail "the default path made a network call: $(cat "$home/net.log")"
+  pass "the local-only default marks every recorded item not_checked without a network call"
+}
+
+test_recorded_item_verification_has_one_total_deadline() {
+  local home fakebin json started elapsed
+  home=$(make_home recorded-deadline); write_recorded_pr_fixture "$home"
+  fakebin=$(make_fakebin "$home"); : > "$home/net.log"
+  started=$(date +%s)
+  json=$(FM_BEARINGS_PR_TIMEOUT=1 FAKE_VERIFY_SLEEP=1 run "$home" "$fakebin" --include-prs --json)
+  elapsed=$(( $(date +%s) - started ))
+  [ "$elapsed" -lt 4 ] || fail "recorded-item verification exceeded its total deadline (${elapsed}s)"
+  printf '%s' "$json" | jq -e '
+    (.recorded_prs | length) == 7
+    and all(.recorded_prs[]; .state | startswith("unverified"))
+    and any(.recorded_prs[]; .state == "unverified: verification deadline exceeded")
+    and (.prs | test("recorded items: 0 verified, 7 unverified"))
+  ' >/dev/null || fail "the total deadline must retain an explicit state for every recorded item: $json"
+  pass "recorded-item verification shares one deadline and retains every item"
+}
+
 test_partial_github_failure_degrades() {
   local home fakebin json rc
   home=$(make_home partial); write_fixture "$home"
@@ -980,7 +1110,7 @@ test_perl_fallback_bounds_github_call() {
   fakebin=$(make_fakebin "$home")
   toolbin="$home/toolbin"
   mkdir -p "$toolbin"
-  for cmd in bash dirname basename jq date sed git grep tail cut tr head sort wc perl sleep cat find; do
+  for cmd in bash dirname basename jq date sed git grep tail cut tr head sort wc perl sleep cat find mktemp rm; do
     ln -s "$(command -v "$cmd")" "$toolbin/$cmd"
   done
   started=$(date +%s)
@@ -1926,6 +2056,9 @@ test_open_decision_surfaces_end_to_end
 test_report_pointers_surface
 test_superseded_queued_item_dropped_by_default
 test_include_prs_is_the_only_fetch_path
+test_recorded_items_are_verified_on_both_forges
+test_recorded_items_are_not_checked_by_default
+test_recorded_item_verification_has_one_total_deadline
 test_partial_github_failure_degrades
 test_perl_fallback_bounds_github_call
 test_section_caps_and_expansion_flags
