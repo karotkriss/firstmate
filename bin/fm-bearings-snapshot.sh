@@ -14,10 +14,20 @@
 # LOCAL-ONLY by default: a normal invocation makes ZERO GitHub/network/auth calls.
 # It MAY surface PR URLs already recorded locally in task meta (recorded_prs), but it
 # performs no live discovery or checks. Live PR discovery/checks happen ONLY under
-# --include-prs, which is the sole path that touches the network; all gh coupling
+# --include-prs, which is the sole path that touches the network; all forge coupling
 # lives in that branch and never in the canonical snapshot. The default output states
 # explicitly (the prs: line and the omitted[] surfaces) what was not requested, so an
 # absence is never ambiguous.
+#
+# Every recorded_prs row carries an explicit state, and no state is ever inferred from
+# a worker's earlier report. Under --include-prs each recorded item is resolved on ITS
+# OWN forge - GitHub pull requests through gh-axi, GitLab merge requests through
+# glab-axi - and an item that cannot be resolved reads "unverified: <reason>" rather
+# than dropping out of the answer. Silence is never readable as "still open", which is
+# the exact reasoning error this surface exists to prevent. Without --include-prs the
+# state is "not_checked", the same disclosure the prs: line and omitted[] carry.
+# Open-item DISCOVERY (candidate_prs) is still GitHub-only, so --include-prs discloses
+# that in omitted[] rather than letting a GitLab project look quiet.
 #
 # This wrapper consumes canonical status decisions plus canonically normalized
 # backlog roles, unresolved blockers, and captain actionability. It never infers
@@ -102,11 +112,16 @@ usage: fm-bearings-snapshot.sh [--json] [--include-prs] [--fields <list>]
 Compact bearings projection over fm-fleet-snapshot.sh. TOON by default.
 Default is LOCAL-ONLY (no network); --include-prs is the only path that fetches.
 
+--include-prs also resolves every recorded_prs item on its own forge (GitHub via
+  gh-axi, GitLab via glab-axi); an item it cannot resolve reads "unverified: <reason>"
+  per item, never silence. Without it every recorded item reads "not_checked".
 Default fields: schema, home, generated, prs, in_flight{id,kind,state,doing},
   secondmates{id,state,doing,provenance,freshness,age_seconds,contradiction,reason},
   decisions_open{id,key,verb,summary,owner}, landed{id,what,artifact,owner},
   gates{id,title,blocked_by,reason,owner}, reports{id,path}, recorded_prs{id,url},
   unhealthy_endpoints{...} (only when non-empty), omitted{surface,reveal}.
+recorded_prs{id,url,state} where state is not_checked, merged, open, closed, or
+  "unverified: <reason>".
 landed merges this home's Done with registered secondmate homes' Done, bounded by
   a per-home cap (FM_BEARINGS_LANDED_PER_HOME) and an overall cap (FM_BEARINGS_LANDED),
   with omitted[] disclosure. Default selection is balanced across deterministic home
@@ -179,6 +194,7 @@ HOME_LABEL=$(printf '%s' "$SNAP" | jq -er '.fm_home | strings | split("/") | (.[
 # --- optional live PR enrichment (the ONLY network path) --------------------
 PR_STATUS='not_requested (run: /bearings include PRs)'
 CANDIDATE_PRS='[]'
+RECORDED_PR_STATES='[]'
 PR_REPOS_TOTAL=0
 PR_REPOS_SHOWN=0
 PR_ROWS_CAPPED=0
@@ -189,17 +205,74 @@ repo_slug() {  # <url>
   printf '%s' "$1" | sed -n 's#.*github\.com[:/]\([^/]*/[^/]*\)#\1#p' | sed 's#\.git$##; s#/pull/.*$##; s#/$##'
 }
 
-# Bounded gh call; prints stdout, non-zero on timeout/failure. gh only.
-gh_bounded() {  # <args...>
+# Bounded network call; prints stdout, non-zero on timeout/failure.
+net_bounded() {  # <command> <args...>
   if command -v timeout >/dev/null 2>&1; then
-    GH_PROMPT_DISABLED=1 GH_NO_UPDATE_NOTIFIER=1 timeout "$FM_BEARINGS_PR_TIMEOUT" gh "$@"
+    GH_PROMPT_DISABLED=1 GH_NO_UPDATE_NOTIFIER=1 timeout "$FM_BEARINGS_PR_TIMEOUT" "$@"
   elif command -v gtimeout >/dev/null 2>&1; then
-    GH_PROMPT_DISABLED=1 GH_NO_UPDATE_NOTIFIER=1 gtimeout "$FM_BEARINGS_PR_TIMEOUT" gh "$@"
+    GH_PROMPT_DISABLED=1 GH_NO_UPDATE_NOTIFIER=1 gtimeout "$FM_BEARINGS_PR_TIMEOUT" "$@"
   elif command -v perl >/dev/null 2>&1; then
-    GH_PROMPT_DISABLED=1 GH_NO_UPDATE_NOTIFIER=1 perl -e 'my $t = shift; my $pid = fork; die "fork failed" unless defined $pid; if (!$pid) { setpgrp(0, 0); exec @ARGV } local $SIG{ALRM} = sub { kill "TERM", -$pid; select undef, undef, undef, 0.2; kill "KILL", -$pid; exit 124 }; alarm $t; waitpid $pid, 0; exit($? >> 8)' "$FM_BEARINGS_PR_TIMEOUT" gh "$@"
+    GH_PROMPT_DISABLED=1 GH_NO_UPDATE_NOTIFIER=1 perl -e 'my $t = shift; my $pid = fork; die "fork failed" unless defined $pid; if (!$pid) { setpgrp(0, 0); exec @ARGV } local $SIG{ALRM} = sub { kill "TERM", -$pid; select undef, undef, undef, 0.2; kill "KILL", -$pid; exit 124 }; alarm $t; waitpid $pid, 0; exit($? >> 8)' "$FM_BEARINGS_PR_TIMEOUT" "$@"
   else
     return 124
   fi
+}
+
+# Which forge a recorded URL belongs to. GitHub pull requests and GitLab merge
+# requests have distinct, unmistakable URL shapes; anything else is unknown, and
+# an unknown forge is unverifiable rather than assumed open.
+forge_of_url() {  # <url>
+  case "$1" in
+    *github.com/*/pull/[0-9]*) printf github ;;
+    *://*/-/merge_requests/[0-9]*) printf gitlab ;;
+    *) printf '' ;;
+  esac
+}
+
+# Resolve ONE recorded item on its own forge, printing exactly one of merged,
+# open, closed, or "unverified: <reason>". Every failure mode - missing tool,
+# unreadable URL, timeout, API error, unrecognized answer - lands in the
+# unverified branch, because reporting a stale "open" from a local record is the
+# failure this whole surface exists to prevent.
+# gh-axi and glab-axi are the owners of their forges' flags; gh-axi renders its
+# API response as TOON with top-level `merged:` and `state:` lines, and glab-axi
+# takes the merge-request URL directly and prints a bare scalar for --jq.
+verify_recorded_pr() {  # <url>
+  local url=$1 slug num out state
+  case "$(forge_of_url "$url")" in
+    github)
+      command -v gh-axi >/dev/null 2>&1 || { printf 'unverified: gh-axi not found'; return 0; }
+      slug=$(repo_slug "$url")
+      num=${url##*/}
+      case "$num" in ''|*[!0-9]*) num='' ;; esac
+      if [ -z "$slug" ] || [ -z "$num" ]; then
+        printf 'unverified: unreadable pull-request URL'; return 0
+      fi
+      out=$(net_bounded gh-axi api "repos/$slug/pulls/$num" 2>/dev/null) \
+        || { printf 'unverified: GitHub read failed'; return 0; }
+      if printf '%s\n' "$out" | grep -qx 'merged: true'; then
+        printf merged; return 0
+      fi
+      state=$(printf '%s\n' "$out" | sed -n 's/^state: //p' | head -1 | tr -d '"')
+      case "$state" in
+        open) printf open ;;
+        closed) printf closed ;;
+        *) printf 'unverified: GitHub returned no readable state' ;;
+      esac
+      ;;
+    gitlab)
+      command -v glab-axi >/dev/null 2>&1 || { printf 'unverified: glab-axi not found'; return 0; }
+      state=$(net_bounded glab-axi mr view "$url" --jq .state 2>/dev/null) \
+        || { printf 'unverified: GitLab read failed'; return 0; }
+      case "$(printf '%s' "$state" | tr -d '"' | tr -d '[:space:]')" in
+        merged) printf merged ;;
+        opened) printf open ;;
+        closed|locked) printf closed ;;
+        *) printf 'unverified: GitLab returned no readable state' ;;
+      esac
+      ;;
+    *) printf 'unverified: unrecognized forge' ;;
+  esac
 }
 
 if [ "$INCLUDE_PRS" = 1 ]; then
@@ -231,7 +304,7 @@ EOF
     for repo in $repos; do
       if [ "$ALL_PR_REPOS" != 1 ] && [ "$nrepos" -ge "$FM_BEARINGS_PR_REPOS" ]; then break; fi
       nrepos=$((nrepos + 1))
-      out=$(gh_bounded pr list --repo "$repo" --state open --limit "$pr_fetch_limit" \
+      out=$(net_bounded gh pr list --repo "$repo" --state open --limit "$pr_fetch_limit" \
         --json number,title,url,headRefName,reviewDecision,mergeable,statusCheckRollup 2>/dev/null) \
         || { nwarn=$((nwarn + 1)); continue; }
       [ -n "$out" ] || out='[]'
@@ -271,6 +344,29 @@ EOF
       PR_STATUS="checked (${nrepos} repos, ${npr} open${warnnote})"
     fi
   fi
+
+  # Per-item resolution of everything already recorded locally, on BOTH forges.
+  # Discovery above answers "what is open in these GitHub repos"; this answers
+  # "is THIS recorded item still open", which is the question a stale local
+  # record gets wrong. It runs even when the discovery path is unavailable, and
+  # it covers the same items the projection will show, in the same order.
+  nverified=0; nunverified=0
+  while IFS="$(printf '\t')" read -r rid rurl; do
+    [ -n "$rid" ] && [ -n "$rurl" ] || continue
+    if [ "$ALL_RECORDED_PRS" != 1 ] \
+       && [ $((nverified + nunverified)) -ge "$FM_BEARINGS_RECORDED_PRS" ]; then break; fi
+    rstate=$(verify_recorded_pr "$rurl")
+    case "$rstate" in unverified*) nunverified=$((nunverified + 1)) ;; *) nverified=$((nverified + 1)) ;; esac
+    RECORDED_PR_STATES=$(jq -n --argjson a "$RECORDED_PR_STATES" --arg id "$rid" --arg state "$rstate" \
+      '$a + [{id:$id,state:$state}]')
+  done <<EOF
+$(printf '%s' "$SNAP" | jq -r '.tasks[]
+  | select(.kind != "secondmate" and .pr.url != null and .pr.source == "meta")
+  | [.id, .pr.url] | @tsv')
+EOF
+  if [ $((nverified + nunverified)) -gt 0 ]; then
+    PR_STATUS="${PR_STATUS}; recorded items: ${nverified} verified, ${nunverified} unverified"
+  fi
 fi
 
 # --- projection: canonical snapshot -> fm-bearings.v1 model (JSON) ----------
@@ -301,7 +397,8 @@ MODEL=$(printf '%s' "$SNAP" | jq \
   --argjson pr_repos_shown "$PR_REPOS_SHOWN" \
   --argjson pr_rows_capped "$PR_ROWS_CAPPED" \
   --argjson pr_rows_min_total "$PR_ROWS_MIN_TOTAL" \
-  --argjson candidate_prs "$CANDIDATE_PRS" '
+  --argjson candidate_prs "$CANDIDATE_PRS" \
+  --argjson recorded_pr_states "$RECORDED_PR_STATES" '
   def trunc($n): if . == null then null else
     (tostring | gsub("\\s+"; " ") | if (length > $n) then (.[:$n] + "…") else . end) end;
   def round_robin_landed($n):
@@ -419,7 +516,11 @@ MODEL=$(printf '%s' "$SNAP" | jq \
        | . as $r
        | select(($all_reports == 1) or (($rel_ids | index($r.id)) != null))
        | {id, path} ]) as $reports_all
-  | ([ .tasks[] | select(.kind != "secondmate" and .pr.url != null and .pr.source == "meta") | {id, url:.pr.url} ]) as $recorded_prs_all
+  | ([ $recorded_pr_states[] | {key:.id, value:.state} ] | from_entries) as $recorded_pr_state_by_id
+  | ([ .tasks[] | select(.kind != "secondmate" and .pr.url != null and .pr.source == "meta")
+       | {id, url:.pr.url,
+          state:($recorded_pr_state_by_id[.id]
+                 // (if $include_prs == 1 then "unverified: not checked" else "not_checked" end))} ]) as $recorded_prs_all
   | . as $snap
   | {
       schema: "fm-bearings.v1",
@@ -473,7 +574,8 @@ MODEL=$(printf '%s' "$SNAP" | jq \
         (if $all_unhealthy == 0 and ($unhealthy_all | length) > $unhealthy_n then {surface:("unhealthy_endpoints showing \($unhealthy_n) of \($unhealthy_all | length)"), reveal:"--all-unhealthy"} else empty end),
         (if $include_prs == 1 and $pr_repos_total > $pr_repos_shown then {surface:("PR repositories showing \($pr_repos_shown) of \($pr_repos_total)"), reveal:"--all-pr-repos"} else empty end),
         (if $include_prs == 1 and $pr_rows_capped > 0 then {surface:("candidate_prs showing \($candidate_prs | length) of at least \($pr_rows_min_total); capped in \($pr_rows_capped) repo(s)"), reveal:"raise FM_BEARINGS_PR_LIMIT"} else empty end),
-        (if $include_prs == 1 then empty else {surface:"live PR discovery + checks", reveal:"--include-prs"} end) ]) }
+        (if $include_prs == 1 then {surface:"open-item discovery covers GitHub only; GitLab items are verified only where recorded_prs holds them", reveal:"inspect the GitLab project directly"} else empty end),
+        (if $include_prs == 1 then empty else {surface:"live PR discovery + per-item recorded PR/MR verification", reveal:"--include-prs"} end) ]) }
 ') || { echo "fm-bearings-snapshot: projection failed" >&2; exit 1; }
 
 if [ "$FORMAT" = json ]; then

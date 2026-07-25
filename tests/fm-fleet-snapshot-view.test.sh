@@ -755,10 +755,40 @@ test_parked_scout_decision_stays_pending() {
   pass "a scout still parked at a decision stays pending (terminal clear does not over-fire)"
 }
 
+# A real home's backlog document is far larger than a single exec argument may be
+# (MAX_ARG_STRLEN, 128 KiB on Linux), which used to abort the whole snapshot with
+# "jq: Argument list too long". The bound is the kernel's, not jq's, so the fixture
+# only has to cross it once to reproduce.
+test_oversized_backlog_still_snapshots() {
+  local home fakebin out i doc_bytes
+  home=$(make_home oversized); write_fixture "$home"
+  fakebin=$(make_fakebin "$home")
+  i=1
+  while [ "$i" -le 400 ]; do
+    printf -- '- [x] bulk-%s - %s (repo: firstmate) (kind: ship) (merged 2026-07-11)\n' \
+      "$i" "Landed change $i with a note long enough that four hundred rows carry the backlog document past a single argument's limit" \
+      >> "$home/data/backlog.md"
+    i=$((i + 1))
+  done
+  out=$(PATH="$fakebin:$PATH" FM_HOME="$home" "$SNAPSHOT" --json) \
+    || fail "the snapshot must survive a backlog larger than one exec argument"
+  doc_bytes=$(printf '%s' "$out" | jq -c '.backlog' | wc -c)
+  [ "$doc_bytes" -gt 131072 ] \
+    || fail "fixture backlog document is only $doc_bytes bytes; it no longer crosses the argument limit"
+  printf '%s' "$out" | jq -e '
+    .schema == "fm-fleet-snapshot.v1"
+      and ([.backlog.records[] | select(.id == "bulk-400")] | length) == 1
+      and ([.backlog.records[] | select(.id == "ship-task")] | length) == 1
+      and (.tasks | length) > 0
+  ' >/dev/null || fail "the oversized snapshot lost records: $(printf '%s' "$out" | head -c 400)"
+  pass "a backlog larger than one exec argument still produces a complete snapshot"
+}
+
 test_empty_fleet_json
 test_fixture_snapshot_json
 test_main_inventory_orphan_and_unstructured_disclosure
 test_normalized_roles_and_plural_blocker_readiness
+test_oversized_backlog_still_snapshots
 test_event_hints_follow_reconciled_current_state
 test_open_decision_survives_later_unrelated_event
 test_secondmate_open_decision_survives_live_endpoint
