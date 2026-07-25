@@ -11,9 +11,9 @@
 # output, it never removes them from - or otherwise weakens - the canonical snapshot,
 # which stays complete.
 #
-# LOCAL-ONLY by default: a normal invocation makes ZERO GitHub/network/auth calls.
-# It MAY surface PR URLs already recorded locally in task meta (recorded_prs), but it
-# performs no live discovery or checks. Live PR discovery/checks happen ONLY under
+# LOCAL-ONLY by default: a normal invocation makes ZERO forge/network/auth calls.
+# It MAY surface forge-item URLs already recorded locally in task meta (recorded_prs),
+# but it performs no live discovery or checks. Live forge enrichment happens ONLY under
 # --include-prs, which is the sole path that touches the network; all forge coupling
 # lives in that branch and never in the canonical snapshot. The default output states
 # explicitly (the prs: line and the omitted[] surfaces) what was not requested, so an
@@ -52,7 +52,7 @@
 # Flags:
 #   (default)        compact projection, TOON, local-only
 #   --json           the same projected model as JSON (machine/debug; parity form)
-#   --include-prs    ALSO do live open-PR discovery + checks (the only network path)
+#   --include-prs    ALSO do GitHub discovery + recorded-item forge checks
 #   --fields <list>  opt in to dropped surfaces: bodies,paths,actions,endpoints
 #   --all-in-flight  include every in-flight task
 #   --all-decisions  include every open decision
@@ -60,7 +60,7 @@
 #   --all-landed     include every landed record from every home (default: bounded)
 #   --all-reports    include the full scout-report inventory (default: relevant only)
 #   --all-queued     include superseded queued items (default: dropped)
-#   --all-recorded-prs include every locally recorded PR
+#   --all-recorded-prs include every locally recorded pull request or merge request
 #   --all-unhealthy  include every unhealthy endpoint
 #   --all-pr-repos   query every discovered repository under --include-prs
 #   -h,--help        usage
@@ -133,8 +133,9 @@ For every registered secondmate, readable structured facts from its own home are
   evidence and never become current work.
 Opt-in surfaces: --fields bodies|paths|actions|endpoints, --all-in-flight,
   --all-decisions, --all-secondmates, --all-landed, --all-reports, --all-queued, --all-recorded-prs,
-  --all-unhealthy, --all-pr-repos, --include-prs (adds candidate_prs).
-Raise FM_BEARINGS_PR_LIMIT to expand per-repository open-PR results.
+  --all-unhealthy, --all-pr-repos, --include-prs (adds GitHub candidate_prs and
+  verifies recorded pull requests and merge requests).
+Raise FM_BEARINGS_PR_LIMIT to expand per-repository GitHub open-PR results.
 EOF
 }
 
@@ -209,7 +210,7 @@ fi
 HOME_LABEL=$(printf '%s' "$SNAP" | jq -er '.fm_home | strings | split("/") | (.[-2:] | join("/"))') \
   || { echo "fm-bearings-snapshot: invalid canonical snapshot" >&2; exit 1; }
 
-# --- optional live PR enrichment (the ONLY network path) --------------------
+# --- optional live forge enrichment (the ONLY network path) -----------------
 PR_STATUS='not_requested (run: /bearings include PRs)'
 PR_REPOS_TOTAL=0
 PR_REPOS_SHOWN=0
