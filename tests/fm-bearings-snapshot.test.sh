@@ -43,6 +43,18 @@ SH
 #!/usr/bin/env bash
 echo "gh $*" >> "$NET_LOG"
 if [ "${FAKE_GH_FAIL:-0}" = 1 ]; then exit 1; fi
+# Per-item verification: `gh pr view <n> --repo <slug> --json state,mergedAt`.
+# Real gh prints JSON with an uppercase state, and exits non-zero when it cannot
+# resolve the pull request.
+if [ "${1:-}" = pr ] && [ "${2:-}" = view ]; then
+  [ "${FAKE_VERIFY_SLEEP:-0}" = 1 ] && sleep 30
+  case "${3:-}" in
+    701) printf '{"mergedAt":"2026-07-25T09:08:20Z","state":"MERGED"}\n' ;;
+    702) printf '{"mergedAt":null,"state":"OPEN"}\n' ;;
+    *) exit 1 ;;
+  esac
+  exit 0
+fi
 if [ "${FAKE_GH_SLEEP:-0}" = 1 ]; then sleep 30; fi
 if [ "${FAKE_GH_MANY:-0}" = 1 ]; then
   cat <<'JSON'
@@ -54,40 +66,36 @@ cat <<'JSON'
 [{"number":9,"title":"Ship the thing","url":"https://github.com/kunchenguid/firstmate/pull/9","headRefName":"fm/ship-task","reviewDecision":"APPROVED","mergeable":"MERGEABLE","statusCheckRollup":[{"conclusion":"SUCCESS","status":"COMPLETED"}]}]
 JSON
 SH
-  # gh-axi answers a single recorded pull request the way the real one does: TOON
-  # with top-level merged:/state: lines, and an error body (still exit 0) for a
-  # pull request it cannot read.
-  cat > "$fb/gh-axi" <<'SH'
+  # `glab` answers `mr view <iid> -R <slug> --output json` with GitLab's own
+  # lowercase state vocabulary, and exits non-zero for a merge request it cannot read.
+  cat > "$fb/glab" <<'SH'
 #!/usr/bin/env bash
-echo "gh-axi $*" >> "$NET_LOG"
-[ "${FAKE_GH_FAIL:-0}" = 1 ] && exit 1
-[ "${FAKE_VERIFY_SLEEP:-0}" = 1 ] && sleep 30
-case "$*" in
-  *pulls/701) printf 'merged: true\nstate: closed\ntitle: "Landed already"\n' ;;
-  *pulls/702) printf 'merged: false\nstate: open\ntitle: "Still open"\n' ;;
-  *pulls/703) printf 'error: "gh: Not Found (HTTP 404)"\ncode: NOT_FOUND\n' ;;
-esac
-exit 0
-SH
-  # glab-axi answers `mr view <url> --jq .state` with GitLab's own state vocabulary.
-  cat > "$fb/glab-axi" <<'SH'
-#!/usr/bin/env bash
-echo "glab-axi $*" >> "$NET_LOG"
+echo "glab $*" >> "$NET_LOG"
 [ "${FAKE_GLAB_FAIL:-0}" = 1 ] && exit 1
 [ "${FAKE_VERIFY_SLEEP:-0}" = 1 ] && sleep 30
 case "$*" in
-  *merge_requests/801*) printf 'merged\n' ;;
-  *merge_requests/802*) printf 'opened\n' ;;
+  "mr view 801 "*) printf '{"iid":801,"state":"merged","merged_at":"2026-07-25T11:34:43Z"}\n' ;;
+  "mr view 802 "*) printf '{"iid":802,"state":"opened","merged_at":null}\n' ;;
   *) exit 1 ;;
 esac
 exit 0
 SH
+  # Tripwires: shipped code must depend on the OFFICIAL CLIs, not these wrappers.
+  # They log and fail so any accidental reintroduction shows up in $NET_LOG.
+  for wrapper in gh-axi glab-axi; do
+    cat > "$fb/$wrapper" <<SH
+#!/usr/bin/env bash
+echo "$wrapper \$*" >> "\$NET_LOG"
+exit 1
+SH
+    chmod +x "$fb/$wrapper"
+  done
   cat > "$fb/curl" <<'SH'
 #!/usr/bin/env bash
 echo "curl $*" >> "$NET_LOG"
 exit 1
 SH
-  chmod +x "$fb/no-mistakes" "$fb/tmux" "$fb/gh" "$fb/gh-axi" "$fb/glab-axi" "$fb/curl"
+  chmod +x "$fb/no-mistakes" "$fb/tmux" "$fb/gh" "$fb/glab" "$fb/curl"
   printf '%s\n' "$fb"
 }
 
@@ -1023,10 +1031,14 @@ test_recorded_items_are_verified_on_both_forges() {
     and ([.recorded_prs[] | select(.id == "gl-merged")] | .[0].state) == "merged"
     and ([.recorded_prs[] | select(.id == "gl-open")] | .[0].state) == "open"
   ' >/dev/null || fail "verified items must report the forge's own answer: $json"
-  grep -q '^glab-axi mr view https://gitlab.example.com/grp/proj/-/merge_requests/801 --jq .state$' \
-    "$home/net.log" || fail "GitLab items must be resolved through glab-axi: $(cat "$home/net.log")"
-  grep -q '^gh-axi api repos/acme/repo/pulls/701$' "$home/net.log" \
-    || fail "GitHub items must be resolved through gh-axi: $(cat "$home/net.log")"
+  # Each forge is resolved through its OWN official CLI, at the same dependency
+  # level the discovery path already uses, and never through a third-party wrapper.
+  grep -q '^glab mr view 801 -R gitlab.example.com/grp/proj --output json$' \
+    "$home/net.log" || fail "GitLab items must be resolved through glab: $(cat "$home/net.log")"
+  grep -q '^gh pr view 701 --repo acme/repo --json state,mergedAt$' "$home/net.log" \
+    || fail "GitHub items must be resolved through gh: $(cat "$home/net.log")"
+  grep -qE '^(gh|glab)-axi ' "$home/net.log" \
+    && fail "shipped code must not call an axi wrapper: $(cat "$home/net.log")"
 
   # Only then the negative: an unresolvable item is unverified per item, never silent.
   printf '%s' "$json" | jq -e '

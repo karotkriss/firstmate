@@ -21,8 +21,12 @@
 #
 # Every recorded_prs row carries an explicit state, and no state is ever inferred from
 # a worker's earlier report. Under --include-prs each recorded item is resolved on ITS
-# OWN forge - GitHub pull requests through gh-axi, GitLab merge requests through
-# glab-axi - and an item that cannot be resolved reads "unverified: <reason>" rather
+# OWN forge, using that forge's OFFICIAL CLI and its real JSON output: GitHub pull
+# requests through `gh pr view --json`, GitLab merge requests through `glab mr view
+# --output json`. Both are OPTIONAL: a missing CLI yields "unverified: gh not found"
+# or "unverified: glab not found" per item and never fails the command, so a
+# GitHub-only installation loses nothing it has today.
+# An item that cannot be resolved reads "unverified: <reason>" rather
 # than dropping out of the answer. Silence is never readable as "still open", which is
 # the exact reasoning error this surface exists to prevent. Without --include-prs the
 # state is "not_checked", the same disclosure the prs: line and omitted[] carry.
@@ -112,9 +116,11 @@ usage: fm-bearings-snapshot.sh [--json] [--include-prs] [--fields <list>]
 Compact bearings projection over fm-fleet-snapshot.sh. TOON by default.
 Default is LOCAL-ONLY (no network); --include-prs is the only path that fetches.
 
---include-prs also resolves every recorded_prs item on its own forge (GitHub via
-  gh-axi, GitLab via glab-axi); an item it cannot resolve reads "unverified: <reason>"
-  per item, never silence. Without it every recorded item reads "not_checked".
+--include-prs also resolves every recorded_prs item on its own forge, through that
+  forge's official CLI (GitHub via `gh`, GitLab via `glab`); both are optional and a
+  missing one yields "unverified: <tool> not found" per item rather than failing.
+  Any item it cannot resolve reads "unverified: <reason>", never silence.
+  Without it every recorded item reads "not_checked".
 Default fields: schema, home, generated, prs, in_flight{id,kind,state,doing},
   secondmates{id,state,doing,provenance,freshness,age_seconds,contradiction,reason},
   decisions_open{id,key,verb,summary,owner}, landed{id,what,artifact,owner},
@@ -252,37 +258,46 @@ forge_of_url() {  # <url>
 # unreadable URL, timeout, API error, unrecognized answer - lands in the
 # unverified branch, because reporting a stale "open" from a local record is the
 # failure this whole surface exists to prevent.
-# gh-axi and glab-axi are the owners of their forges' flags; gh-axi renders its
-# API response as TOON with top-level `merged:` and `state:` lines, and glab-axi
-# takes the merge-request URL directly and prints a bare scalar for --jq.
+# Each forge's OFFICIAL CLI owns its own flags and emits real JSON, which is
+# parsed here with jq rather than scraped from rendered text. The open-PR
+# discovery path below already depends on plain `gh`, so verification uses the
+# same dependency level for the same forge instead of a second, heavier one.
 verify_recorded_pr() {  # <url>
-  local url=$1 slug num out state
+  local url=$1 slug num rest out state
   case "$(forge_of_url "$url")" in
     github)
-      command -v gh-axi >/dev/null 2>&1 || { printf 'unverified: gh-axi not found'; return 0; }
+      command -v gh >/dev/null 2>&1 || { printf 'unverified: gh not found'; return 0; }
       slug=$(repo_slug "$url")
       num=${url##*/}
       case "$num" in ''|*[!0-9]*) num='' ;; esac
       if [ -z "$slug" ] || [ -z "$num" ]; then
         printf 'unverified: unreadable pull-request URL'; return 0
       fi
-      out=$(net_bounded gh-axi api "repos/$slug/pulls/$num" 2>/dev/null) \
+      out=$(net_bounded gh pr view "$num" --repo "$slug" --json state,mergedAt 2>/dev/null) \
         || { printf 'unverified: GitHub read failed'; return 0; }
-      if printf '%s\n' "$out" | grep -qx 'merged: true'; then
-        printf merged; return 0
-      fi
-      state=$(printf '%s\n' "$out" | sed -n 's/^state: //p' | head -1 | tr -d '"')
+      state=$(printf '%s' "$out" | jq -r '.state // empty' 2>/dev/null)
       case "$state" in
-        open) printf open ;;
-        closed) printf closed ;;
+        MERGED) printf merged ;;
+        OPEN) printf open ;;
+        CLOSED) printf closed ;;
         *) printf 'unverified: GitHub returned no readable state' ;;
       esac
       ;;
     gitlab)
-      command -v glab-axi >/dev/null 2>&1 || { printf 'unverified: glab-axi not found'; return 0; }
-      state=$(net_bounded glab-axi mr view "$url" --jq .state 2>/dev/null) \
+      command -v glab >/dev/null 2>&1 || { printf 'unverified: glab not found'; return 0; }
+      # A merge-request URL is <host>/<group>/<project>/-/merge_requests/<iid>;
+      # glab addresses it as the iid plus -R <host>/<group>/<project>.
+      rest=${url#*://}
+      num=${rest##*/}
+      case "$num" in ''|*[!0-9]*) num='' ;; esac
+      slug=${rest%%/-/merge_requests/*}
+      if [ -z "$num" ] || [ -z "$slug" ] || [ "$slug" = "$rest" ]; then
+        printf 'unverified: unreadable merge-request URL'; return 0
+      fi
+      out=$(net_bounded glab mr view "$num" -R "$slug" --output json 2>/dev/null) \
         || { printf 'unverified: GitLab read failed'; return 0; }
-      case "$(printf '%s' "$state" | tr -d '"' | tr -d '[:space:]')" in
+      state=$(printf '%s' "$out" | jq -r '.state // empty' 2>/dev/null)
+      case "$state" in
         merged) printf merged ;;
         opened) printf open ;;
         closed|locked) printf closed ;;
