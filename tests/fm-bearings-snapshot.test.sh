@@ -1073,13 +1073,13 @@ test_recorded_items_are_not_checked_by_default() {
 }
 
 test_recorded_item_verification_has_one_total_deadline() {
-  local home fakebin json started elapsed
+  local home fakebin json verification_calls
   home=$(make_home recorded-deadline); write_recorded_pr_fixture "$home"
   fakebin=$(make_fakebin "$home"); : > "$home/net.log"
-  started=$(date +%s)
   json=$(FM_BEARINGS_PR_TIMEOUT=1 FAKE_VERIFY_SLEEP=1 run "$home" "$fakebin" --include-prs --json)
-  elapsed=$(( $(date +%s) - started ))
-  [ "$elapsed" -lt 4 ] || fail "recorded-item verification exceeded its total deadline (${elapsed}s)"
+  verification_calls=$(grep -Ec '^(gh pr view|glab mr view) ' "$home/net.log")
+  [ "$verification_calls" -ge 1 ] && [ "$verification_calls" -le 4 ] \
+    || fail "recorded-item verification started work after its first timed-out batch: $(cat "$home/net.log")"
   printf '%s' "$json" | jq -e '
     (.recorded_prs | length) == 7
     and all(.recorded_prs[]; .state | startswith("unverified"))
