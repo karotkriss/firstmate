@@ -1,0 +1,13 @@
+Herdr pi parked-prompt safety proof
+===================================
+base blocked verdict:   empty
+target blocked verdict: unknown
+target idle verdict:    empty
+target done verdict:    empty
+target working verdict: unknown
+
+Away-mode injection boundary
+guard log: inject deferred: supervisor composer not confirmed-empty (state=unknown: pending input, dead-shell prompt, or unreadable pane)
+blocked prompt injection: deferred
+send seam invoked
+idle composer injection: sent
