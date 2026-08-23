@@ -1,0 +1,7 @@
+BASE ASSERTION AGAINST SABOTAGED HEALTHY-WATCHER READINESS
+not ok - OpenCode watch plugin must not treat external healthy output as an owned arm: expected exit 0, got 1
+observed test exit: 1
+
+CHANGED ASSERTION AGAINST THE SAME SABOTAGE
+not ok - OpenCode watch plugin must not treat external healthy output as an owned arm (exit 1): turn-end guard was suppressed by an external healthy watcher
+observed test exit: 1
