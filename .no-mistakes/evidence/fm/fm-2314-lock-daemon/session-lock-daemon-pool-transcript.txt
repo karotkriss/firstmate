@@ -1,0 +1,7 @@
+Issue #2314 end-user lock-path evidence
+Executable surface: real bin/fm-lock.sh with only ps shadowed to model a Claude worker pool reparented to PID 1.
+ok - session-lock: a session served by a worker pool proves it owns the lock it holds
+ok - session-lock: a pool-served session never claims a lock held by another session
+ok - session-lock: a published session pid is trusted only while it is a live Claude session
+ok - session-lock: acquire is not refused to the pool-served session that already holds the lock
+exit=0
