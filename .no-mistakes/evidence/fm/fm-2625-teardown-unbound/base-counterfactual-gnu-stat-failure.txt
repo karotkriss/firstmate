@@ -1,0 +1,7 @@
+Counterfactual: base commit on the same Linux stat implementation
+/tmp/fm-2625-base.qEC3z3/bin/fm-busy-event.sh: line 107: File: unbound variable
+exit=1
+Surviving busy-state artifacts:
+task-2625.busy-gen
+task-2625.busy-state
+task-2625.busy-state.lock

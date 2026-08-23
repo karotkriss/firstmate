@@ -1,0 +1,7 @@
+Injected Linux stat -c result: File: unexpected-portability-output
+error: busy-state lock timeout for task-guard
+exit=1
+State preserved for a safe retry:
+task-guard.busy-gen
+task-guard.busy-state
+task-guard.busy-state.lock

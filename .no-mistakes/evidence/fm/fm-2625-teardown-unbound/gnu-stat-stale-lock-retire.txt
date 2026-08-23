@@ -1,0 +1,23 @@
+Environment: Linux
+stat (uutils coreutils) 0.8.0
+
+Before retire:
+task-2625.busy-gen
+task-2625.busy-state
+task-2625.busy-state.lock
+task-2625.meta
+task-2625.status
+task-2625.turn-ended
+
+First retire with abandoned writer lock:
+exit=0
+Busy-state artifacts after first retire:
+(none means record, generation sidecar, and writer lock were removed)
+
+Second retire over already-clean state:
+exit=0
+
+Unrelated teardown-owned state remains for fm-teardown.sh to remove after retire succeeds:
+task-2625.meta
+task-2625.status
+task-2625.turn-ended
