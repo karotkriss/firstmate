@@ -1,0 +1,13 @@
+Scenario: two exact transient interruptions, then reviewer feedback
+Lavish poll attempts: 3
+Durable results captured: 1
+Fleet check wakes published: 1
+Published wake payload: check: procevent lavish lavish-a6916a3a8f651560 1
+Captured result:
+session:
+  file: /board.html
+  status: feedback
+  session_ended: true
+  ended_by: user
+feedback[1]{text}:
+  ship it
