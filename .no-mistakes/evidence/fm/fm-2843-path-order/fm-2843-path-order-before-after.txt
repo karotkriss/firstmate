@@ -1,0 +1,16 @@
+Bash runtime: 5.2.37(1)-release
+Fixture creation order: node/8.1, node/26, node/26.7.0
+Contract order (literal shell glob):
+  /tmp/fm2843-case2/home/.local/share/mise/installs/node/26.7.0/bin
+  /tmp/fm2843-case2/home/.local/share/mise/installs/node/26/bin
+  /tmp/fm2843-case2/home/.local/share/mise/installs/node/8.1/bin
+Before fix composed mise order:
+  /tmp/fm2843-case2/home/.local/share/mise/installs/node/8.1/bin
+  /tmp/fm2843-case2/home/.local/share/mise/installs/node/26/bin
+  /tmp/fm2843-case2/home/.local/share/mise/installs/node/26.7.0/bin
+Before fix resolved executable: node-8.1
+After fix composed mise order:
+  /tmp/fm2843-case2/home/.local/share/mise/installs/node/26.7.0/bin
+  /tmp/fm2843-case2/home/.local/share/mise/installs/node/26/bin
+  /tmp/fm2843-case2/home/.local/share/mise/installs/node/8.1/bin
+After fix resolved executable: node-26.7.0

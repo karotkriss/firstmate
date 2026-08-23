@@ -1,0 +1,8 @@
+Queued remote worker result for account home containing glob metacharacters:
+worker-command=/tmp/fm2843-worker-e2e2/account[qa]/.local/share/mise/installs/node/26.7.0/bin/node
+worker-resolved=node-26.7.0
+worker-path-mise-order:
+/tmp/fm2843-worker-e2e2/account[qa]/.local/share/mise/installs/node/26.7.0/bin
+/tmp/fm2843-worker-e2e2/account[qa]/.local/share/mise/installs/node/26/bin
+/tmp/fm2843-worker-e2e2/account[qa]/.local/share/mise/installs/node/8.1/bin
+exit=0
