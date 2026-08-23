@@ -1,0 +1,30 @@
+Stow decay policy simulation (opt-in shape)
+===========================================
+Initial aging entries: 40; admissions: 2 per pass; passes: 60
+Usage cohorts: frequent every 5 passes, occasional every 16, never reinforced
+
+Default contract (config/stow-pass-horizon absent)
+  Daily cadence:   40 -> 132 entries
+  Byte-identical to the pre-change wall-clock policy every pass: True
+  No counter is written and no counter is read
+  A single unreinforced aging entry survives 29 passes and archives on day 30
+
+Opted in (config/stow-pass-horizon present)
+  Daily cadence:   40 -> 82 entries
+  Result: the pass horizon fires in the daily-stow home and removes 50 more stale entries
+
+Monthly cadence
+  Default:  40 -> 2 entries
+  Opted in: 40 -> 2 entries
+  Serialized states identical after every pass: True
+
+Boundary and compatibility scenarios
+  Legacy dated marker reads as counter zero: <!--a:2026-01-01-->
+  First unreinforced tick in an opted-in home serializes as: <!--a:2026-01-01/1-->
+  The same entry in a default home serializes as:            <!--a:2026-01-01-->
+  Opted-in aging remains live through pass 9 and archives on pass 10
+  Opted-in perishable remains live through pass 2 and archives on pass 3
+  Genuine evidence on pass 9 refreshes the date and clears the counter
+  One later no-evidence pass produces counter: 1
+  Removing the flag after pass 5 freezes the counter at 5 and stops reading it
+  Undated legacy-grace marker is skipped by the dated-entry tick

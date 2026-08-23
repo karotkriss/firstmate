@@ -1,0 +1,31 @@
+Stow pass-horizon behavioral evidence
+=====================================
+
+Source exercised:
+  /tmp/fm-fm-2410-optin-amend/stow-decay-simulation.py
+
+Main simulation result:
+  Default daily cadence: 40 -> 132 entries
+  Byte-identical to pre-change wall-clock policy every pass: True
+  Opted-in daily cadence: 40 -> 82 entries
+  Monthly serialized states identical after every pass: True
+  Aging archives on opted-in pass 10
+  Perishable archives on opted-in pass 3
+  Default aging archives on day 30
+  Evidence on pass 9 refreshes the date and clears the counter
+
+Focused required scenario 8:
+  before removing opt-in: <!--a:2026-01-01/5-->
+  after removing opt-in:  <!--a:2026-01-01-->
+  expected frozen bytes:  <!--a:2026-01-01/5-->
+
+Result:
+  FAIL. The supplied serializer drops the frozen /5 bytes when opt-in is absent.
+
+Assertion failure:
+  AssertionError: counter bytes were rewritten: expected <!--a:2026-01-01/5-->, got <!--a:2026-01-01-->
+
+PR evidence mismatch:
+  PR #2850 says the amended simulation proved byte-preserving opt-out and shows
+  <!--a:2026-01-01/5--> == <!--a:2026-01-01/5-->, but the supplied reproducible
+  source produces the failing result above.
