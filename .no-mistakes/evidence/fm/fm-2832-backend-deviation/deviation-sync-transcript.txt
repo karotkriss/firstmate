@@ -1,0 +1,15 @@
+LOCAL SYNC: evidence-backed home value differs from primary
+SECONDMATE_SYNC: secondmate home /home/cmckay/.no-mistakes/evidence/01M0QGSVN0P3CRWKQTRNRPY79Q/deviation-sync-state/local-second: config/backend held locally at "tmux" against primary "herdr": four workers died on herdr; tmux verified stable
+persisted config/backend: tmux
+
+REMOTE SYNC: receiver reports divergence and primary relay names it
+receiver: deviation: config/backend held locally at "tmux" against primary "herdr": four workers died on herdr; tmux verified stable
+SECONDMATE_SYNC: secondmate ios: deviation: config/backend held locally at "tmux" against primary "herdr": four workers died on herdr; tmux verified stable
+persisted config/backend: tmux
+
+REMOTE SYNC: primary now agrees, so ordinary unchanged output has no divergence
+receiver: unchanged: config/backend
+
+LOCAL SYNC: primary revokes by removing the home record
+persisted config/backend: herdr
+report status: pushed
