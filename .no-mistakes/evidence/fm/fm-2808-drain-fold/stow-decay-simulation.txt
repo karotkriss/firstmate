@@ -1,0 +1,24 @@
+Stow decay policy simulation
+============================
+Initial aging entries: 40; admissions: 2 per pass; passes: 60
+Usage cohorts: frequent every 5 passes, occasional every 16, never reinforced
+
+Daily cadence
+  Wall-clock-only policy: 40 -> 132 entries
+  Dual-horizon policy:    40 -> 82 entries
+  Result: pass decay fires in the daily-stow home and removes 50 more stale entries
+
+Monthly cadence
+  Wall-clock-only policy: 40 -> 2 entries
+  Dual-horizon policy:    40 -> 2 entries
+  Serialized states identical after every pass: True
+
+Boundary and compatibility scenarios
+  Legacy dated marker reads as counter zero: <!--a:2026-01-01-->
+  First unreinforced tick serializes as:       <!--a:2026-01-01/1-->
+  Aging remains live through pass 9 and archives on pass 10
+  Perishable remains live through pass 2 and archives on pass 3
+  Genuine evidence on pass 9 refreshes the date and clears the counter
+  One later no-evidence pass produces counter: 1
+  A statement with no independent evidence follows the no-evidence tick path
+  Undated legacy-grace marker is skipped by the dated-entry tick
