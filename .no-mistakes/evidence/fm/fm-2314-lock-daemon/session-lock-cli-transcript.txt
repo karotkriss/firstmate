@@ -1,0 +1,12 @@
+Scenario: tool call rooted in a PID 1 worker pool, outside the interactive session ancestry.
+Interactive session PID: 96910
+Reachable worker-pool harness PID: 300
+
+Owned lock before acquire: 96910
+lock acquired: harness pid 96910
+Owned lock after acquire:  96910
+
+Foreign live lock before acquire: 96912
+error: another live firstmate session holds the lock (pid 96912); operate read-only until resolved
+Foreign acquire exit: 1
+Foreign live lock after acquire:  96912
