@@ -1,0 +1,21 @@
+End-user reproduction: scaffold each brief, then globally replace every documented {TASK} placeholder.
+Task body: Restart the Herdr session, then profile it.
+
+baseline ship: task body occurrences=2
+4:Restart the Herdr session, then profile it.
+7:**HARD SAFETY GATE:** this scaffold cannot inspect the task text that replaces `Restart the Herdr session, then profile it.` later.
+7:**HARD SAFETY GATE:** this scaffold cannot inspect the task text that replaces `Restart the Herdr session, then profile it.` later.
+
+baseline scout: task body occurrences=2
+4:Restart the Herdr session, then profile it.
+7:**HARD SAFETY GATE:** this scaffold cannot inspect the task text that replaces `Restart the Herdr session, then profile it.` later.
+7:**HARD SAFETY GATE:** this scaffold cannot inspect the task text that replaces `Restart the Herdr session, then profile it.` later.
+
+current ship: task body occurrences=1
+4:Restart the Herdr session, then profile it.
+7:**HARD SAFETY GATE:** this scaffold cannot inspect the task text filled in above.
+
+current scout: task body occurrences=1
+4:Restart the Herdr session, then profile it.
+7:**HARD SAFETY GATE:** this scaffold cannot inspect the task text filled in above.
+
