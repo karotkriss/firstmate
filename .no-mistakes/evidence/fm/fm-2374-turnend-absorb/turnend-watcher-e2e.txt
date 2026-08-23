@@ -1,0 +1,22 @@
+Firstmate turn-end watcher end-to-end evidence
+busy_verdict: state: unknown · source: pane · harness state unavailable (unknown codex-unverified)
+
+CASE: unknown Codex busy state, pane changed
+watcher_result: continued watching (wake absorbed)
+durable_wake_queue: empty
+triage_log: [2026-08-23T12:09:21-0400] absorbed benign signal: /tmp/fm-turnend-evidence.C1PMDc/changed/state/changed.turn-ended
+
+CASE: unknown Codex busy state, prior evidence still
+watcher_result: exited and surfaced wake
+watcher_stdout: signal: /tmp/fm-turnend-evidence.C1PMDc/unchanged/state/unchanged.turn-ended 
+durable_wake_queue: 1787501363	1	signal	unchanged.turn-ended	signal: /tmp/fm-turnend-evidence.C1PMDc/unchanged/state/unchanged.turn-ended
+
+CASE: unknown Codex busy state, prior evidence malformed
+watcher_result: exited and surfaced wake
+watcher_stdout: signal: /tmp/fm-turnend-evidence.C1PMDc/badhash/state/badhash.turn-ended 
+durable_wake_queue: 1787501365	1	signal	badhash.turn-ended	signal: /tmp/fm-turnend-evidence.C1PMDc/badhash/state/badhash.turn-ended
+
+CASE: unknown Codex busy state, changed pane, ambiguous marker key
+watcher_result: exited and surfaced wake
+watcher_stdout: signal: /tmp/fm-turnend-evidence.C1PMDc/collision/state/a.b.turn-ended 
+durable_wake_queue: 1787501368	1	signal	a.b.turn-ended	signal: /tmp/fm-turnend-evidence.C1PMDc/collision/state/a.b.turn-ended
