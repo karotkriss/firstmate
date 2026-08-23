@@ -1,0 +1,38 @@
+Scenario 1: whole-fleet refresh with a non-repository directory under projects/
+Candidate: /tmp/tmp.AaNgIxTnvm/firstmate-home/projects/worktree-container
+Git discovery resolves candidate to enclosing repository: /tmp/tmp.AaNgIxTnvm/firstmate-home
+Enclosing HEAD before: ae9b3c45bb5194ea51a345628c508c7d6ba2d6e7
+Remote main available: 7db6eeb49d3e005972f9620b2208e1cb534f5890
+Fleet-sync output:
+worktree-container: skipped: not a clone root (git would act on /tmp/tmp.AaNgIxTnvm/firstmate-home)
+Enclosing HEAD after whole-fleet refresh: ae9b3c45bb5194ea51a345628c508c7d6ba2d6e7
+Result: enclosing repository unchanged
+
+Scenario 2: direct single-project refresh of the same candidate
+Fleet-sync output:
+worktree-container: skipped: not a clone root (git would act on /tmp/tmp.AaNgIxTnvm/firstmate-home)
+Enclosing HEAD after direct refresh: ae9b3c45bb5194ea51a345628c508c7d6ba2d6e7
+Result: enclosing repository unchanged
+
+Scenario 3: symlinked clone remains a valid clone root and fast-forwards
+Symlink path physical root: /tmp/tmp.AaNgIxTnvm/real-clone
+Git top-level through symlink: /tmp/tmp.AaNgIxTnvm/real-clone
+Clone HEAD before: 7db6eeb49d3e005972f9620b2208e1cb534f5890
+Remote main available: 366826ed87644834c8d1b469e3bc36e086d85462
+Fleet-sync output:
+symlinked-clone: synced 7db6eeb..366826e
+Clone HEAD after: 366826ed87644834c8d1b469e3bc36e086d85462
+Result: symlinked clone advanced to remote main
+
+Scenario 4: a candidate with no discoverable repository keeps the existing wording
+Fleet-sync output:
+plain-dir: skipped: not a git repo
+Result: no-repository case remained a benign skip
+
+Counterfactual: base revision 8714c9a reproduces issue #2691 on the same operator path
+Enclosing HEAD before: f3e4c17872baf8187104730d341f84349d239750
+Remote main available: 41628a52d20b9e797ba96666750741e631a75c33
+Base fleet-sync output:
+worktree-container: synced f3e4c17..41628a5
+Enclosing HEAD after base whole-fleet refresh: 41628a52d20b9e797ba96666750741e631a75c33
+Result: base revision mislabeled the nested directory as synced and fast-forwarded the enclosing repository
