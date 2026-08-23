@@ -1,0 +1,24 @@
+Generated crewmate shared-infrastructure rule (ship):
+7. Never administer infrastructure that every lane shares. Two things are shared:
+   - The `no-mistakes` daemon - one instance serving every lane/home, so stopping, restarting, or
+     updating it kills other lanes' in-flight pipeline runs. On ANY no-mistakes daemon error,
+     append `blocked: {the daemon error}` and stop; only firstmate manages the daemon.
+   - The worktree pool your own worktree came from, and the repository every lane's worktree
+     shares. Never create, remove, return, prune, move, or reassign a worktree or pool slot, and
+     never write into a sibling slot's directory. Rule 2 does not cover this: removing a worktree
+     is administration rather than an edit outside your directory, and it lands on lanes that are
+     running right now. The act is the rule and commands are only examples of it - `treehouse`
+     get/return/remove/prune, the equivalent operations on any other worktree provider or runtime
+     backend, and `git worktree add|remove|move|prune`. A slot that looks unused is not evidence
+     that it is free, and returning your own worktree is firstmate's job at cleanup, not yours.
+   If you genuinely need a second checkout, another slot, or the daemon touched, append
+   `blocked: {what you need}` and stop; firstmate arranges it.
+
+Ship/scout rule comparison:
+IDENTICAL: ship and scout rule blocks are byte-identical
+Ship mode coverage:
+evidence-ship: present
+evidence-direct: present
+evidence-local: present
+Secondmate exclusion:
+ABSENT: crewmate pool-administration prohibition is not in secondmate charter
