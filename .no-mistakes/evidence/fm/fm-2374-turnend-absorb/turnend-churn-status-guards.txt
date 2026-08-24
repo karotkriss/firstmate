@@ -1,0 +1,2 @@
+ok - a secondmate's status signal is never absorbed as provably working; crewmates are unaffected
+ok - a secondmate's status note surfaces even while its own agent is busy

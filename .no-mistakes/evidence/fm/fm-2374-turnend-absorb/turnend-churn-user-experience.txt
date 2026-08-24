@@ -1,0 +1,18 @@
+SCENARIO: opted-in Codex-style worker with pane churn
+watcher_stdout_bytes=0
+durable_queue_bytes=0
+audit=[2026-08-23T20:45:29-0400] absorbed benign signal: /tmp/fm-watch-triage-evidence.wW7zjh/turn-ended-churning/state/codexer.turn-ended
+deferral_marker=1787532329
+RESULT: absorbed without waking the supervisor, with a bounded per-window deadline recorded.
+
+SCENARIO: identical churning worker without config/turnend-churn-absorb
+watcher_output=signal: /tmp/fm-watch-triage-evidence.wW7zjh/turn-ended-churn-default-off/state/codexdefault.turn-ended 
+durable_drain=1787532331	2	signal	codexdefault.turn-ended	signal: /tmp/fm-watch-triage-evidence.wW7zjh/turn-ended-churn-default-off/state/codexdefault.turn-ended 
+deferral_marker=absent
+RESULT: surfaced and queued exactly as before, with no new deferral state.
+
+SCENARIO: opted-in worker whose pane kept churning past the deadline
+watcher_output=signal: /tmp/fm-watch-triage-evidence.wW7zjh/turn-ended-churn-bounded/state/codexclock.turn-ended 
+durable_drain=1787532335	2	signal	codexclock.turn-ended	signal: /tmp/fm-watch-triage-evidence.wW7zjh/turn-ended-churn-bounded/state/codexclock.turn-ended 
+deferral_marker=cleared
+RESULT: surfaced and queued after the bound, then cleared the spent deadline for the next interval.
