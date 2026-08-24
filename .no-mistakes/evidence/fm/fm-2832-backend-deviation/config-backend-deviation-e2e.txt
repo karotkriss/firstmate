@@ -1,0 +1,29 @@
+SCENARIO 1: Local secondmate holds an evidence-backed backend pin
+$ propagate_inheritable_config primary/config secondmate/config
+SECONDMATE_SYNC: secondmate home /tmp/tmp.5TBhxreS3g/secondmate: config/backend held locally at "tmux" against primary "herdr": four workers died on herdr; tmux verified stable
+$ secondmate config/backend
+tmux
+$ persisted sync result
+item=backend status=deviated evidence=four workers died on herdr; tmux verified stable
+
+SCENARIO 2: A matching primary value produces no divergence noise
+$ propagate_inheritable_config primary/config secondmate/config
+[no sync output]
+$ persisted sync result
+item=backend status=unchanged
+
+SCENARIO 3: Removing the record restores primary authority
+$ propagate_inheritable_config primary/config secondmate/config
+[no sync output]
+$ secondmate config/backend
+herdr
+$ persisted sync result
+item=backend status=pushed
+
+SCENARIO 4: Remote receiver reports the same divergence to the pushing primary
+$ fm-remote-inherit.sh put config/backend <primary herdr payload>
+deviation: config/backend held locally at "tmux" against primary "herdr": remote workers verified stable on tmux
+$ pushing-primary relay
+SECONDMATE_SYNC: secondmate remote-demo: deviation: config/backend held locally at "tmux" against primary "herdr": remote workers verified stable on tmux
+$ remote secondmate config/backend
+tmux
