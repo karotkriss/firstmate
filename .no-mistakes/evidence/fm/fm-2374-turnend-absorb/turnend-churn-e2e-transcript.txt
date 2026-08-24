@@ -1,0 +1,24 @@
+SCENARIO=enabled
+watcher_alive=true
+watcher_stdout=
+queue_record=none
+pane_capture_count=1
+churn_window=open
+triage_log=[2026-08-23T21:57:05-0400] absorbed benign signal: /tmp/turnend-churn-evidence.ceU39N/opt_in/state/codexworker.turn-ended
+
+SCENARIO=disabled
+watcher_alive=false
+watcher_stdout=signal: /tmp/turnend-churn-evidence.ceU39N/default_off/state/codexworker.turn-ended
+queue_record=signal:signal: /tmp/turnend-churn-evidence.ceU39N/default_off/state/codexworker.turn-ended
+pane_capture_count=0
+churn_window=absent
+triage_log=none
+
+SCENARIO=expired
+watcher_alive=false
+watcher_stdout=signal: /tmp/turnend-churn-evidence.ceU39N/deadline_spent/state/codexworker.turn-ended
+queue_record=signal:signal: /tmp/turnend-churn-evidence.ceU39N/deadline_spent/state/codexworker.turn-ended
+pane_capture_count=1
+churn_window=absent
+triage_log=none
+
