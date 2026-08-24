@@ -1,0 +1,14 @@
+SCENARIO 1: primary pushes herdr while remote home holds evidence-backed tmux
+remote receiver: deviation: config/backend held locally at "tmux" against primary "herdr": four workers died on herdr; tmux verified
+SECONDMATE_SYNC: secondmate ios: deviation: config/backend held locally at "tmux" against primary "herdr": four workers died on herdr; tmux verified
+remote config/backend after sync: tmux
+
+SCENARIO 2: primary and remote home both hold tmux, so the record is quiet
+remote receiver: unchanged: config/backend
+primary divergence relay: [none]
+remote config/backend after sync: tmux
+
+SCENARIO 3: remote home moves the record aside, revoking its deviation
+remote receiver: pushed: config/backend
+primary divergence relay: [none]
+remote config/backend after sync: herdr
