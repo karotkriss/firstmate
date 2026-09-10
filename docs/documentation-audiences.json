@@ -493,6 +493,22 @@
       "audience": "operator-current"
     },
     {
+      "path": "skills/paper-templates/SKILL.md",
+      "audience": "public-product"
+    },
+    {
+      "path": "skills/paper-templates/references/pitfalls.md",
+      "audience": "public-product"
+    },
+    {
+      "path": "skills/paper-templates/references/transform-guide.md",
+      "audience": "public-product"
+    },
+    {
+      "path": "skills/paper-templates/references/verification.md",
+      "audience": "public-product"
+    },
+    {
       "path": "skills/stow/SKILL.md",
       "audience": "public-product"
     }

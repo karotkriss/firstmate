@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "paper-templates": {
+      "source": "./skills/paper-templates",
+      "sourceType": "local",
+      "computedHash": "e1445287c4344b85658e0d5014fc8392d1b817439e89e8fd1e1ca419a6b5832b"
+    },
+    "stow": {
+      "source": "./skills/stow",
+      "sourceType": "local",
+      "computedHash": "f24bf1176da13a85f7b3c249518c7f051fb826a2d596fa33d3afcc5c348483a8"
+    }
+  }
+}
