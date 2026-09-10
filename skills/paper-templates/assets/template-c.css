@@ -1,3 +1,13 @@
+@page {
+  size: A4;
+  margin: 22mm 20mm 24mm 20mm;
+  @top-center { content: "%%SHORT%%"; font-family:Georgia,"Times New Roman",Times,serif;
+                font-size: 8.5pt; font-variant: small-caps; letter-spacing: .1em; color:#333; }
+  @bottom-center { content: counter(page); font-family:Georgia,"Times New Roman",Times,serif; font-size:10pt; color:#000; }
+}
+@page :first { @top-center { content: none } @bottom-center { content: none } }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; }
 .sC{font-family:Georgia,"Times New Roman",Times,serif;color:#000;font-size:12.5px;line-height:1.45}
 .sC .titleblock{text-align:center;margin-bottom:22px}
 .sC .titleblock h1{font-size:20px;font-weight:700;margin:0 0 10px;line-height:1.3}

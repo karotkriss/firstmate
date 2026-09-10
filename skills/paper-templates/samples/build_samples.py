@@ -11,7 +11,7 @@ Usage: python3 build_samples.py
 Then render each output with the settle-wait driver, e.g.
   node render.js sample-a.html sample-a.pdf
 """
-import pathlib, re
+import pathlib
 
 HERE = pathlib.Path(__file__).resolve().parent
 ASSETS = HERE.parent / 'assets'
@@ -86,13 +86,22 @@ BODY_C = f'''<div class="titleblock">
 <p>The paint stage is short but serial, and the ship stage varies with the artifact registry's latency rather than with anything the pipeline controls.</p>
 {FIGURE}
 <h2><span class="no">II.</span> The assembly bottleneck</h2>
-<p>Run 40 assembled every widget twice: once to size it and once to place it. Run 41 memoized the sizing pass behind a content hash, and run 42 confirmed the effect holds on a cold cache.</p>
+<p>Run 40 assembled every widget twice: once to size it and once to place it. Run 41 memoized the sizing pass behind a content hash, and run 42 confirmed the effect holds on a cold cache. The memo key is the widget's normalized source, so two widgets that differ only in placement share a single sizing pass, and the second run reuses the first run's measured extent without touching the layout engine again.</p>
+<p>The saving is not uniform across the corpus. Small leaf widgets size in well under a millisecond either way, so memoizing them buys nothing and costs a hash; the win concentrates in the few composite widgets whose sizing recurses through dozens of children. Run 42 spent 61 of its 96 seconds inside eleven such widgets, and every one of them was a cache hit on its second placement.</p>
+<h2><span class="no">III.</span> The paint stage</h2>
+<p>Paint is short but strictly serial: each widget paints onto the shared canvas in document order, and a later widget may depend on the pixels an earlier one wrote. That ordering constraint is why paint never parallelized, and why the run-41 defect - a widget that painted before its backdrop - produced a visible seam rather than a crash. The fixture now asserts paint order against the assembly order, so the seam cannot return silently.</p>
+<p>Escaped paint defects fell to zero after that fixture landed, held across runs 41 and 42, and are the single result this excerpt would stake the report on if forced to keep only one.</p>
+<h2><span class="no">IV.</span> The ship stage</h2>
+<p>Ship is network-bound and holds the only cross-host dependency in the pipeline: it pushes the assembled artifact to a registry whose latency the pipeline cannot control. Its wall-clock share therefore drifts run to run with no code change, which is exactly why the stage-ranking conclusions are stated against the assembly stage and never against ship.</p>
+<p>Taken together the four stages tell one story: the wall clock is an assembly problem, paint is a correctness problem now closed, and ship is a measurement caveat rather than a target. The full report carries the per-widget breakdown behind each of these claims.</p>
+<h2><span class="no">V.</span> Instrumentation and method</h2>
+<p>Every timing in this excerpt comes from the same in-process tracer, which brackets each stage with a monotonic clock and writes one record per widget per stage. The tracer adds under two percent overhead, measured by running the corpus with tracing compiled out; that overhead is uniform across stages, so it does not disturb the ranking even though it inflates absolute times by a small constant.</p>
+<p>Runs were serialized deliberately. A parallel harness would shorten the wall clock but would also let the assembly and ship stages overlap, and the whole point of these three runs was to attribute time to a single stage at a time. The serial ceiling is stated in the test-environment note above precisely so no reader mistakes these absolute seconds for a throughput claim.</p>
+<p>The corpus itself is frozen at 3,412 widgets for all three runs. Freezing it was what let run 41's memoization claim be tested cleanly: the same widgets, the same placement graph, only the sizing path changed. A drifting corpus would have confounded the memo win with whatever new widgets it introduced.</p>
+<h2><span class="no">VI.</span> What the full report adds</h2>
+<p>This is a two-page excerpt of a longer document, chosen to exercise every surface the template offers - a title block, a boxed environment note, a headline table, a print-palette figure, and roman-numeral journal sections in a two-column flow - so a reader picking a direction can judge the form on real-looking material rather than lorem text.</p>
+<p>The full report continues with a per-widget appendix, the raw tracer records behind the figure, and a short colophon recording the build host and the fixture revision. None of that changes the conclusions drawn here; it exists so that each number above can be traced back to the record that produced it, which is the standard every paper built with this pipeline is held to.</p>
 </div>'''
-
-def page_rules(css_a: str) -> str:
-    """Template A's @page rules, taken from the stylesheet itself."""
-    m = re.match(r'(.*?@page :first[^}]*}.*?}\n)', css_a, re.S)
-    return m.group(1)
 
 def shell(css: str, body: str, title: str) -> str:
     return (f'<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8">'
@@ -103,10 +112,10 @@ def main():
     css_a = (ASSETS / 'template-a.css').read_text().replace('%%SHORT%%', SHORT)
     (HERE / 'sample-a.html').write_text(shell(css_a, BODY_A, 'Template A sample'))
 
-    # productionize C per SKILL.md: drop the .sC prefix, add A's @page rules,
-    # keep .cols { column-count: 2 }
-    css_c = (ASSETS / 'template-c.css').read_text().replace('.sC ', '').replace('.sC{', 'body{')
-    css_c = page_rules(css_a) + 'body { margin: 0 }\n' + css_c
+    # productionize C per SKILL.md: drop the .sC scope prefix, keeping the
+    # template's own @page rules and .cols { column-count: 2 } body flow
+    css_c = (ASSETS / 'template-c.css').read_text().replace('%%SHORT%%', SHORT)
+    css_c = css_c.replace('.sC ', '').replace('.sC{', 'body{')
     (HERE / 'sample-c.html').write_text(shell(css_c, BODY_C, 'Template C sample'))
     print('wrote sample-a.html sample-c.html')
 

@@ -4,7 +4,7 @@
     "paper-templates": {
       "source": "./skills/paper-templates",
       "sourceType": "local",
-      "computedHash": "704c5742e13c408a7e69ae8322343bd783feb72060648e365a75d9959e29b1fa"
+      "computedHash": "d2e6626fe3e702cbecfd2f581f109f01e7c7d688acbb069baef133bc416d4278"
     },
     "stow": {
       "source": "./skills/stow",
