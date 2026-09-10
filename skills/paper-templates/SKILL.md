@@ -18,6 +18,7 @@ Presentation is part of correctness here: an upward-facing document never ships 
 
 Default to C and offer A as the alternative; do not invent a third style, and never fall back to plain web styling.
 If the user should see the direction before a full build, render the same short excerpt in both templates and let them pick.
+`samples/` holds exactly that: a generic invented excerpt rendered in both templates (`samples/sample-a-p1.png`, `samples/sample-a-p2.png`, `samples/sample-c-p1.png`), rebuilt by `samples/build_samples.py`, which also demonstrates the template-C productionizing recipe below.
 
 Template A is production-ready as shipped.
 Template C is the approved sample-scale stylesheet (scoped under `.sC`); to productionize it, drop the `.sC` scoping prefix, add template A's `@page` rules, and keep `.cols { column-count: 2 }` for the body flow.
