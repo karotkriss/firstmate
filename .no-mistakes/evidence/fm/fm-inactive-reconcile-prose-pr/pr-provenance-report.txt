@@ -1,0 +1,14 @@
+End-user surface: the parent-channel terminal report (mate.status) that a
+captain reads after fm-inactive-reconcile reconciles three delivered children.
+Upstream issue #4099: a PR URL a worker only mentioned in PROSE (or a scout
+citing someone else's PR) must NOT be claimed as "the task's delivered PR".
+
+Children reconciled (meta pr= stripped for prose/ready; lookout is kind=scout):
+  prose  : working: context in .../pull/33  /  done: cleanup finished
+  ready  : done: PR .../pull/44 checks green
+  lookout: done: PR .../pull/55          (kind=scout)
+
+PARENT-CHANNEL REPORT LINES PRODUCED UNDER THE FIX:
+done [key=child-outcome-lookout-done-057dc0f6]: child lookout done: PR https://example.test/owner/repo/pull/55 mode=no-mistakes yolo=off
+done [key=child-outcome-prose-done-32ed4b3e]: child prose done: cleanup finished mode=no-mistakes yolo=off
+done [key=child-outcome-ready-done-1e2c1f2b]: child ready done: PR https://example.test/owner/repo/pull/44 checks green pr=https://example.test/owner/repo/pull/44 mode=no-mistakes yolo=off
