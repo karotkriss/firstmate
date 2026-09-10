@@ -1,0 +1,6 @@
+Portable-parallel shard timeout caps in .github/workflows/ci.yml (parsed as YAML):
+  tests-portable-parallel-1 : timeout-minutes = 20  (was 10; measured wall ~9.8m -> 2.04x margin)
+  tests-portable-parallel-2 : timeout-minutes = 20  (was 10; measured wall ~3.3m -> 6.06x margin)
+  tests-portable-serial     : timeout-minutes = 30  (reference lane, unchanged)
+
+Workflow YAML parses without error; GitHub Actions will consume these caps as-is.
