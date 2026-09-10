@@ -5,7 +5,7 @@ template produces without any real document content.
 
 Reads each stylesheet from ../assets at build time (never pastes it), and
 productionizes template C exactly as SKILL.md describes: drop the .sC scoping
-prefix, add template A's @page rules, keep the two-column body flow.
+prefix, keep the template's own @page rules and the two-column body flow.
 
 Usage: python3 build_samples.py
 Then render each output with the settle-wait driver, e.g.
