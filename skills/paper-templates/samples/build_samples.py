@@ -97,7 +97,7 @@ def page_rules(css_a: str) -> str:
 def shell(css: str, body: str, title: str) -> str:
     return (f'<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8">'
             f'<title>{title}</title>\n<style>{css}</style></head>\n<body>{body}\n'
-            f'<script src="paged.polyfill.js"></script></body></html>\n')
+            f'<script src="../assets/paged.polyfill.js"></script></body></html>\n')
 
 def main():
     css_a = (ASSETS / 'template-a.css').read_text().replace('%%SHORT%%', SHORT)

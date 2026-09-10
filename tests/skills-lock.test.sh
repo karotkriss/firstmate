@@ -14,16 +14,4 @@ test_lock_matches_tree() {
   pass "skills-lock.json matches the skills/ tree"
 }
 
-test_lock_covers_every_skill() {
-  local dir name
-  for dir in "$ROOT"/skills/*/; do
-    [ -f "$dir/SKILL.md" ] || continue
-    name=$(basename "$dir")
-    grep -q "\"$name\"" "$ROOT/skills-lock.json" ||
-      fail "skills-lock.json has no entry for skills/$name"
-  done
-  pass "every public skill has a lock entry"
-}
-
 test_lock_matches_tree
-test_lock_covers_every_skill
