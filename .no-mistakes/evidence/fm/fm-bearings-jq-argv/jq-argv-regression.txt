@@ -1,0 +1,32 @@
+Regression: bin/fm-bearings-snapshot.sh accumulated candidate-PR rows exceeded
+the kernel MAX_ARG_STRLEN (128 KiB per jq argv arg), killing the board on large
+fleets. Fix moves rows to a temp file + --slurpfile (fm-fleet-snapshot pattern).
+
+Test: tests/fm-bearings-snapshot.test.sh::test_pr_rows_above_arg_limit_still_project
+Fixture: FAKE_GH_HUGE emits 500 PRs/repo with ~220-char padded URLs x 2 repos
+= 1000 rows; one repo's rows serialize to >131072 bytes (past the argv cap).
+
+=== BEFORE FIX (base e0d269e bin, run beside its sibling libs) ===
+bin/fm-bearings-snapshot.sh: line 282: jq: Argument list too long
+bin/fm-bearings-snapshot.sh: line 282: jq: Argument list too long
+jq: invalid JSON text passed to --argjson
+fm-bearings-snapshot: projection failed
+not ok - projection failed on PR rows above the per-argument limit
+exit=1
+
+  line 282 is the accumulate:
+    rows=$(jq -n --argjson a "$rows" --argjson b "$repo_rows" '$a + $b')
+
+=== AFTER FIX (target 36f5927) ===
+ok - candidate-PR rows above the per-argument limit still project completely
+exit=0
+
+  Assertions verified on the projected JSON:
+    .schema == "fm-bearings.v1"
+    (.candidate_prs | length) == 1000            # all rows preserved
+    (.prs | test("checked \\(2 repos, 1000 open\\)"))
+    ([.candidate_prs[] | select(.repo=="acme/repo-1")] | tostring | length) > 131072
+
+Full tests/fm-bearings-snapshot.test.sh run on target: reached the final test
+and printed its ok line with zero "not ok" (fail() aborts on first failure, so
+reaching the end proves the whole file passed).
