@@ -1,0 +1,12 @@
+=== fm-inactive-reconcile pr_for_task provenance: end-to-end behavior ===
+
+Bug (upstream #4099): pr_for_task scraped a PR URL from the whole status log,
+so any URL a worker mentioned in prose (e.g. a scout citing someone else's PR)
+became pr=<url> in the parent-channel terminal report.
+
+--- BEFORE FIX (base 869ae90): new regression test fails ---
+not ok - a PR mentioned only in prose was claimed as the delivery: done [key=child-outcome-lookout-done-773f04e9]: child lookout done: PR https://example.test/owner/repo/pull/55 pr=https://example.test/owner/repo/pull/1 mode=no-mistakes yolo=off
+done [key=child-outcome-prose-done-2d18f95c]: child prose done: cleanup finished pr=https://example.test/other/repo/pull/33 mode=no-mistakes yolo=off
+
+--- AFTER FIX (target 33727ac): same test passes; prose URL dropped, scout carries none, ready-signal keeps its PR ---
+ok - pr= requires the recorded PR or a ready-signal terminal line, and never a scout
