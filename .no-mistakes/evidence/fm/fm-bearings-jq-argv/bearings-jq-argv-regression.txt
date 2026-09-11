@@ -1,0 +1,29 @@
+=== firstmate #3056: bin/fm-bearings-snapshot.sh - move accumulated candidate-PR rows off jq argv ===
+
+Fixture: 2 repos x 500 open PRs = 1000 rows; each PR URL padded to ~220 chars,
+so a single repo's accumulated candidate-PR JSON (187671 bytes) exceeds the kernel's
+128 KiB (131072) MAX_ARG_STRLEN per-argv-argument cap.
+
+--- BEFORE (base 869ae90, jq --argjson accumulation on argv) : regression FAILS ---
+<worktree>/bin/fm-bearings-snapshot.sh: line 282: /home/cmckay/.local/bin/jq: Argument list too long
+<worktree>/bin/fm-bearings-snapshot.sh: line 282: /home/cmckay/.local/bin/jq: Argument list too long
+jq: invalid JSON text passed to --argjson
+Use jq --help for help with command-line options,
+or see the jq manpage, or online docs  at https://jqlang.github.io/jq
+fm-bearings-snapshot: projection failed
+not ok - projection failed on PR rows above the per-argument limit
+
+--- AFTER (target 98714d5, temp-file transport + --slurpfile) : regression PASSES ---
+ok - candidate-PR rows above the per-argument limit still project completely
+
+--- END-USER CLI: /bearings include PRs renders the full board on the large fleet ---
+### END-USER CLI: /bearings include PRs on a large fleet (2 repos x 500 open PRs = 1000 rows)
+### Each PR URL padded to ~220 chars so one repo's accumulated JSON exceeds the 128 KiB jq argv cap.
+
+$ fm-bearings-snapshot.sh --include-prs   (human-readable board, PRs line)
+prs: "checked (2 repos, 1000 open)"
+recorded_prs[2]{id,url}:
+candidate_prs[1000]{num,repo,task,url,review,mergeable,checks}:
+
+$ fm-bearings-snapshot.sh --include-prs --json | jq (structural proof)
+{"schema":"fm-bearings.v1","prs":"checked (2 repos, 1000 open)","candidate_pr_rows":1000,"one_repo_json_bytes":187671}
