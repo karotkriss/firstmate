@@ -26,10 +26,10 @@ test_no_mistakes_arm_has_no_pre_validation_done() {
     "no-mistakes arm still tells the worker to report done before validation"
   assert_no_grep 'Firstmate will then instruct' "$block" \
     "no-mistakes arm still parks the worker to wait for a firstmate instruction"
-  [ "$(grep -c 'done:' "$block")" -eq 1 ] \
+  [ "$(grep -Fc 'done [at=<epoch>]:' "$block")" -eq 1 ] \
     || fail "no-mistakes arm must carry exactly one terminal done: form"
   # shellcheck disable=SC2016 # Backticks are literal generated Markdown.
-  assert_grep 'append `done: PR {url} checks green` and stop' "$block" \
+  assert_grep 'append `done [at=<epoch>]: PR {url} checks green` and stop' "$block" \
     "no-mistakes arm lost its terminal CI-green done: form"
   # shellcheck disable=SC2016 # Backticks are literal generated Markdown.
   assert_grep 'pass `--intent`' "$block" \
@@ -47,7 +47,7 @@ test_direct_pr_and_local_only_arms_are_unchanged() {
 Delivery contract: mode=direct-PR
 This task ships **direct-PR**: you raise the PR yourself, without the no-mistakes pipeline.
 The task is complete only when committed on your branch.
-When it is implemented and committed, push your branch and open a PR with `gh-axi`, then append `done: PR {url}` to the status file and stop.
+When it is implemented and committed, push your branch and open a PR with `gh-axi`, then append `done [at=<epoch>]: PR {url}` to the status file and stop.
 Do NOT run /no-mistakes. The configured merge authority decides whether to merge the PR; firstmate relays the outcome.
 EOF
   diff -u "$expect" "$block" >&2 || fail "direct-PR arm drifted from its fixture"
@@ -60,7 +60,7 @@ Delivery contract: mode=local-only
 This task ships **local-only**: no remote, no PR, no pipeline.
 The task is complete only when committed on your branch `fm/dod-fixture`. Do NOT push, do NOT open a PR, do NOT merge.
 Keep your branch a clean fast-forward onto the current default branch - if `main` has advanced, rebase onto it so the eventual merge stays a fast-forward.
-When it is implemented and committed, append `done: ready in branch fm/dod-fixture` to the status file and stop.
+When it is implemented and committed, append `done [at=<epoch>]: ready in branch fm/dod-fixture` to the status file and stop.
 The configured merge authority approves the ready branch, then firstmate merges it into local `main` through the guarded fast-forward path.
 EOF
   diff -u "$expect" "$block" >&2 || fail "local-only arm drifted from its fixture"
