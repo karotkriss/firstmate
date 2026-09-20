@@ -1,0 +1,3 @@
+=== Scenario 1: hung serial-shard script bounded to a named failure (live E2E) ===
+ok - --per-script-timeout-secs turns a hung script into a bounded failure
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:03.28

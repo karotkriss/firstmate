@@ -1,0 +1,6 @@
+Scenario 2: serial shard wires the per-script bound (semantic YAML parse)
+  tests-portable-serial job cap = 1800s (30 min)
+  fm-test-run.sh --per-script-timeout-secs = 900s
+  positive int: yes | safely under job cap: True
+  invocation: bin/fm-test-run.sh --lane $FM_SERIAL_LANE --fail-on-gate-skip Pi extension typecheck prerequisite not found --per-script-timeout-secs 900
+  strategy.fail-fast = False (other shards not cancelled)
