@@ -1,0 +1,13 @@
+Driven against bin/fm-brief.sh at HEAD 12f4ed7 (isolated FM_HOME)
+
+ship modes carrying pool+daemon+exit rule:
+  - ship-no-mistakes: pool='1' daemon-present, exit-present
+  - ship-direct-PR: pool='1' daemon-present, exit-present
+  - ship-local-only: pool='1' daemon-present, exit-present
+  - scout-1: pool='1' daemon-present, exit-present
+
+byte-identity ship rule7 vs scout rule7:
+  IDENTICAL
+
+secondmate charter omission:
+  OK charter omits prohibition
