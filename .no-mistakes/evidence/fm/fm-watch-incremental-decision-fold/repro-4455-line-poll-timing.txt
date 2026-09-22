@@ -1,0 +1,15 @@
+Repro of the intent's reported scenario on a 4455-line status log with ~2005 still-open decisions
+(heavier than the report's 132; same O(n*k) shape). Same log fed to old and new fold.
+
+log lines: 4455   still-open decisions: 2005
+
+OLD per-line bash fold (one watcher poll): still running (>7 min, exceeded 300s grace) when stopped
+   -> a single poll never returned within the 300s heartbeat grace; the beacon would go stale
+      and the still-alive watcher would report itself down - exactly the reported defect.
+
+NEW single-pass awk fold on the IDENTICAL log:
+   status_open_decisions (one poll):            0.544s
+   _fm_status_open_decision_origins (hot path): 0.644s
+
+Byte-for-byte equivalence of old vs new output is proven by tests/fm-open-decisions-fold.test.sh
+(assert_equiv over every documented shape + a large high-open log).

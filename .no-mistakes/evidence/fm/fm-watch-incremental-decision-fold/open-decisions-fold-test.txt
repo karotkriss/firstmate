@@ -1,0 +1,6 @@
+=== fm-open-decisions-fold.test.sh (awk-vs-bash equivalence + performance) ===
+ok - the awk fold matches the bash rule byte for byte on every documented shape
+ok - the awk fold matches on an empty log and yields nothing for an absent one
+ok - the awk fold matches the bash rule on a 127-open, 180-line log
+ok - the awk fold holds a 5000-line log under the 10s bound (open=2.760s, origins=3.331s)
+ok - one per-line bash fold (30.927s) outweighs 30 awk folds (0.400s)
