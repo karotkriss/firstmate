@@ -1,0 +1,20 @@
+Live real-Herdr-lab e2e (herdr 0.9.1, real Treehouse pool, real fm-spawn.sh/fm-teardown.sh)
+Command: bash tests/fm-backend-herdr-presentation-e2e.test.sh  (EXIT=0)
+
+Scenario lines proving the two concrete cases from the intent:
+
+  ok - real Herdr lab: a stale journal naming a removed workspace is quarantined and the spawn projects afresh
+      -> Case 2: a version-2 journal with no state/<id>.meta naming a workspace that
+         no longer exists is moved to state/quarantine/ (bytes intact) and the spawn
+         projects a fresh disposable workspace instead of running flat.
+
+  ok - real Herdr lab: concurrent post-create abort cleanup stays serialized with exact
+       focus restoration and rolls back each journal
+      -> Case 1: a spawn refused after its journal reached create closes its exact
+         projected workspace and removes its own presentation journal once the
+         workspace is confirmed gone, so the immediate retry does not find a stale
+         journal and run flat.
+
+Adversarial guard still intact (no destructive/adoptive action on ambiguous tokens):
+  ok - real Herdr lab: missing, renamed, and duplicate tokens trigger zero destructive or
+       adoptive calls, and live duplicate risk refuses launch

@@ -1,0 +1,15 @@
+Unit behavior tests (real bin/backends/herdr.sh functions + real jq, fake herdr CLI
+serving canned `workspace list` JSON to model workspace presence/absence).
+Command: bash tests/fm-backend-herdr.test.sh  (EXIT=0)
+
+  ok - herdr presentation reclaim: a journal whose recorded workspace is gone is
+       quarantined and a fresh projection can start
+  ok - herdr presentation reclaim: a still-existing, token-matched, unreadable,
+       foreign-session, or version 1 journal is left to today's recovery
+  ok - herdr presentation rollback: a refused spawn removes its journal only after
+       its exact workspace is confirmed gone
+
+The rollback test also asserts the matrix: workspace-present:kept, list-failed:kept,
+token-mismatch:kept, confirmed-gone:removed -> the journal is deleted ONLY when the
+exact workspace is proven gone AND the journal still carries this spawn's token, and
+only the exact task pane is closed through the focus-safe path.
