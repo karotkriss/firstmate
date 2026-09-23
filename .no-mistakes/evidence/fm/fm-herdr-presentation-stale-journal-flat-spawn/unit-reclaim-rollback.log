@@ -1,0 +1,9 @@
+ok - herdr stale registration: presentation reclaim never closes a stale-registration pane
+ok - herdr presentation reclaim: live agent state at the close boundary refuses mutation
+ok - herdr presentation reclaim: legacy, cross-home, ambiguous, live/unknown, and focus-unknown cases refuse without mutation
+ok - herdr presentation reclaim: exact agent-free husk survives duplicate parent labels while its sibling stays untouched
+warning: 2 exact herdr presentation token matches for task-p3 are quarantined; inspecting only for duplicate-agent risk
+warning: quarantined herdr presentation for task-p3 is dead or agent-free; exact bound reclaim may proceed, otherwise spawning flat
+ok - herdr presentation reclaim: a journal whose recorded workspace is gone is quarantined and a fresh projection can start
+ok - herdr presentation reclaim: a still-existing, token-matched, unreadable, foreign-session, or version 1 journal is left to today's recovery
+ok - herdr presentation rollback: a refused spawn removes its journal only after its exact workspace is confirmed gone
