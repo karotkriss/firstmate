@@ -1,0 +1,8 @@
+ok - watch-arm: a disposable validation checkout refuses to arm
+ok - watch-arm: a watcher exits within one poll when its state directory is removed
+ok - watch-arm: a watcher exits within one poll when its home is removed
+ok - watch-arm: the test reaper stops a watcher armed for a tracked temporary home
+=== Manual refusal reproduction from this real disposable checkout ===
+$ FM_GATE_REFUSE_BYPASS= bash bin/fm-watch-arm.sh --stop
+watcher: FAILED - refusing to arm from a disposable validation checkout: .../01M3A619X4RF67MKVPVHQRH90F/bin
+EXIT=1
