@@ -82,9 +82,11 @@
 # signatures for the task's status and turn-ended files and its .hb-surfaced-
 # heartbeat marker, minted by bin/fm-wake-lib.sh and bin/fm-classify-lib.sh -
 # and, once the recorded pane is proven gone, an orphaned Herdr presentation
-# journal: a version 1 attempt or a binding of exactly that pane names nothing
-# the session-start sweep could still close, while a journal bound to any
-# other pane may name a live quarantined space and is retained for that sweep.
+# journal: a binding of exactly that pane, or a version 1 attempt whose
+# token-bearing projected workspace is itself confirmed gone, names nothing the
+# session-start sweep could still close, while a journal bound to any other pane
+# - or a version 1 attempt whose workspace is still present or unreadable - may
+# name a live quarantined space and is retained for that sweep.
 # data/<id>/ is deliberately left in place: a successor spawn reads brief.md
 # from it.
 # Worktree-slot ownership (teardown-slot-collision): a treehouse pool slot is
