@@ -2518,19 +2518,25 @@ effort_flag_for_harness() {
     # model)", so the effort rides the OPENCODE_CONFIG_CONTENT JSON the launch
     # already writes: the default build agent is pinned to the resolved model
     # and the effort named as its variant, which OpenCode resolves against that
-    # model's own variant list (Anthropic ships high|max, OpenAI low..xhigh).
-    # Without a resolved model the variant has nothing to key to and is omitted.
-    # The fragment lands inside the launch's single-quoted assignment, so a
-    # literal quote in the model id must close and reopen that quoting.
+    # model's own variant list. Those lists are per-provider (anthropic/* expose
+    # high|max, openai/* expose low|medium|high|xhigh), so emit the variant only
+    # when the resolved model's provider is known to expose that effort; any
+    # other provider, or an effort outside its family's list, keeps the
+    # permission-only launch and omits the variant (record-and-omit, as codex
+    # and grok do). Without a resolved model the variant has nothing to key to
+    # and is likewise omitted. The fragment lands inside the launch's
+    # single-quoted assignment, so a literal quote in the model id must close and
+    # reopen that quoting.
     [ -n "$model" ] && [ "$model" != default ] || return 0
-    case "$effort" in
-    low | medium | high | xhigh | max)
-      local model_json
-      model_json=$(json_escape "$model")
-      model_json=${model_json//\'/\'\\\'\'}
-      printf ',"agent":{"build":{"model":"%s","variant":"%s"}}' "$model_json" "$effort"
-      ;;
+    case "${model%%/*}:$effort" in
+    anthropic:high | anthropic:max) ;;
+    openai:low | openai:medium | openai:high | openai:xhigh) ;;
+    *) return 0 ;;
     esac
+    local model_json
+    model_json=$(json_escape "$model")
+    model_json=${model_json//\'/\'\\\'\'}
+    printf ',"agent":{"build":{"model":"%s","variant":"%s"}}' "$model_json" "$effort"
     ;;
   muse)
     # muse 0.1.0-R708.1 --reasoning-effort accepts none|minimal|low|medium|
