@@ -36,10 +36,11 @@
 #   - tasks-axi missing from PATH;
 #   - a caller-supplied --file, because this command owns the addressing and
 #     tasks-axi would silently let the last --file win;
-#   - `add` with --start, because dispatch (bin/fm-spawn.sh) is the only path
-#     that moves a row to In flight: it creates the task record, status file,
-#     and inbox that go with the row, so a hand-started row would count as
-#     live work nobody is doing and nothing later would notice;
+#   - `add` (or its `create` alias) with --start, so this wrapper cannot place
+#     a row In flight without the dispatch artifacts bin/fm-spawn.sh creates -
+#     the task record, status file, and inbox that go with the row - which a
+#     hand-started row would lack, counting as live work nobody is doing that
+#     nothing later would notice;
 #   - a data directory that cannot be resolved, or whose backend configuration
 #     cannot be read (bin/fm-tasks-axi-lib.sh owns that diagnostic);
 #   - a markdown `<data>/backlog.md` that is itself a symlink, because the
