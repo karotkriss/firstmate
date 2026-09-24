@@ -1,0 +1,9 @@
+=== #2960 inactive-outcome dedupe: live reconciler drive ===
+
+--- WITH FIX (fingerprint binds incarnation|id|state|pr only) ---
+ok - later status prose does not change the inactive terminal receipt identity
+ok - complete long ledger lines retain distinct receipt identities
+ok - reused task ids retain per-incarnation terminal receipts
+
+--- PRE-FIX (fingerprint re-includes last status line): regression reproduces ---
+not ok - changed status prose minted a duplicate parent event (3 distinct fingerprints for one failed outcome)
