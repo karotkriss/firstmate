@@ -1,0 +1,20 @@
+Scenario: automatic --changed bound gives the slow watcher suite headroom (#3869)
+Driver: tests/fm-test-run.test.sh :: test_changed_bound_gives_slow_watcher_suites_headroom
+It stands up a real git fixture repo, copies bin/fm-test-run.sh in, stubs
+fm-timeout-lib to record the bound handed to fm_run_timed, changes
+tests/fm-watch-triage.test.sh, then runs `bin/fm-test-run.sh --changed --base HEAD`
+and asserts the healthy slow script passes AND the emitted bound is >= 1500s.
+
+After fix (worktree runner, CHANGED_DEFAULT_TIMEOUT_SECS=1500):
+  ok - --per-script-timeout-secs turns a hung script into a bounded failure
+  ok - the automatic --changed bound gives the slow watcher suite at least 1500s
+  EXIT=0
+
+Before fix (base commit d4f3b78 runner, CHANGED_DEFAULT_TIMEOUT_SECS=900):
+  not ok - automatic --changed bound for tests/fm-watch-triage.test.sh must be at least 1500s, got 900s
+  EXIT=1
+
+Both directions confirmed: the new test is a genuine regression that fails at 900s
+and passes at 1500s, driving the real runner end-to-end. The companion hang test
+(test_per_script_timeout_bounds_a_hang) still passes, so a genuinely hung script
+is still converted to a bounded exit-124 failure.
