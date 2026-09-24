@@ -1,0 +1,28 @@
+ok - allowlist=absent preserves the operational floor and filters only when opted in
+ok - allowlist=missing-config preserves the operational floor and filters only when opted in
+ok - allowlist=enabled preserves the operational floor and filters only when opted in
+ok - allowlist=empty preserves the operational floor and filters only when opted in
+ok - invalid allowlist names refuse before launch or task publication
+ok - inaccessible config with present allowlist refuses before launch or task publication
+ok - inaccessible config with absent allowlist refuses before launch or task publication
+ok - inaccessible ancestor with present allowlist refuses before launch or task publication
+ok - inaccessible ancestor with absent allowlist refuses before launch or task publication
+ok - secondmate launch inherits the allowlist for subsequent worker launches
+ok - local inheritance preserves the allowlist on source errors and mirrors proven absence
+ok - remote inheritance preserves the allowlist on source errors and mirrors proven absence
+### anthropic model + high effort (variant emitted)
+meta: harness=opencode model=anthropic/claude-sonnet-4-5 effort=high 
+launch: export COMPACT_ADVISER_DISABLE=1; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI OPENCODE_CONFIG_CONTENT='{"permission":{"*":"allow"},"agent":{"build":{"model":"anthropic/claude-sonnet-4-5","variant":"high"}}}' opencode --model 'anthropic/claude-sonnet-4-5' --prompt "$('/home/cmckay/.no-mistakes/worktrees/80aee654c94f/01M3A0S70SFKH6590J0E7GXGWT/bin/fm-operational-input.sh' encode launch-brief < '/tmp/fm-spawn-dispatch-profile.g2P0FJ/ev-anth-high/home/data/ev-ev-anth-high/launch-brief.md')"
+
+### anthropic model + no effort (byte-identical permission-only)
+meta: harness=opencode model=anthropic/claude-sonnet-4-5 effort=default 
+launch: export COMPACT_ADVISER_DISABLE=1; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI OPENCODE_CONFIG_CONTENT='{"permission":{"*":"allow"}}' opencode --model 'anthropic/claude-sonnet-4-5' --prompt "$('/home/cmckay/.no-mistakes/worktrees/80aee654c94f/01M3A0S70SFKH6590J0E7GXGWT/bin/fm-operational-input.sh' encode launch-brief < '/tmp/fm-spawn-dispatch-profile.g2P0FJ/ev-anth-none/home/data/ev-ev-anth-none/launch-brief.md')"
+
+### openai model + xhigh effort (variant emitted)
+meta: harness=opencode model=openai/gpt-5.6-sol effort=xhigh 
+launch: export COMPACT_ADVISER_DISABLE=1; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI OPENCODE_CONFIG_CONTENT='{"permission":{"*":"allow"},"agent":{"build":{"model":"openai/gpt-5.6-sol","variant":"xhigh"}}}' opencode --model 'openai/gpt-5.6-sol' --prompt "$('/home/cmckay/.no-mistakes/worktrees/80aee654c94f/01M3A0S70SFKH6590J0E7GXGWT/bin/fm-operational-input.sh' encode launch-brief < '/tmp/fm-spawn-dispatch-profile.g2P0FJ/ev-openai-xhigh/home/data/ev-ev-openai-xhigh/launch-brief.md')"
+
+### anthropic model + medium effort (outside family list, omitted)
+meta: harness=opencode model=anthropic/claude-sonnet-4-5 effort=medium 
+launch: export COMPACT_ADVISER_DISABLE=1; env -u CURSOR_AGENT -u CURSOR_INVOKED_AS -u GEMINI_CLI OPENCODE_CONFIG_CONTENT='{"permission":{"*":"allow"}}' opencode --model 'anthropic/claude-sonnet-4-5' --prompt "$('/home/cmckay/.no-mistakes/worktrees/80aee654c94f/01M3A0S70SFKH6590J0E7GXGWT/bin/fm-operational-input.sh' encode launch-brief < '/tmp/fm-spawn-dispatch-profile.g2P0FJ/ev-anth-med/home/data/ev-ev-anth-med/launch-brief.md')"
+
