@@ -2434,7 +2434,7 @@ crew_worktree_written_since() {  # <id> <state> <anchor-file>
 # carrying a correlation marker (fm_pending_reply_corr_token, bracketed or not),
 # and any verb this library does not know is parent-directed content the
 # supervisor must read, so it surfaces regardless of how busy the mate is. Only
-# unmarked routine `working:`, `paused:`, and `resolved:` progress falls through
+# unmarked routine `working:` and `paused:` progress falls through
 # to the same provably-working absorb an ordinary crewmate gets, so a healthy
 # mate's progress no longer wakes the primary on every append while an unproven
 # mate still surfaces. The span starts at the classified position its owner
@@ -2459,7 +2459,7 @@ _fm_secondmate_status_new_lines_routine() {  # <status-file> <state>
     case "$line" in *corr=*) return 1 ;; esac
     status_line_verb "$line" verb
     case "$verb" in
-      working|"${FM_CLASSIFY_PAUSED_VERB:-$FM_CLASSIFY_PAUSED_VERB_DEFAULT}"|"${FM_CLASSIFY_RESOLVE_VERB:-$FM_CLASSIFY_RESOLVE_VERB_DEFAULT}") ;;
+      working|"${FM_CLASSIFY_PAUSED_VERB:-$FM_CLASSIFY_PAUSED_VERB_DEFAULT}") ;;
       *) return 1 ;;
     esac
   done <<EOF

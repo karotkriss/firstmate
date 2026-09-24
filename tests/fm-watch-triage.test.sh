@@ -707,11 +707,16 @@ test_secondmate_status_routine_absorbed_routed_surfaced_classifier() {
   export FM_FAKE_CREW_STATE_sm='state: working · source: run-step · running'
   printf 'kind=secondmate\n' > "$state/sm.meta"
   # Unmarked routine progress from a PROVABLY working mate absorbs like any crew.
-  printf 'working: step 2 of 5\npaused [at=1]: waiting on CI\nresolved [key=k1]: cleared\n' > "$state/sm.status"
+  printf 'working: step 2 of 5\npaused [at=1]: waiting on CI\n' > "$state/sm.status"
   signal_crew_provably_working "$state/sm.status" \
-    || fail "a working secondmate's routine working/paused/resolved progress was not absorbed"
+    || fail "a working secondmate's routine working/paused progress was not absorbed"
   signal_crew_provably_working "$state/sm.turn-ended" \
     || fail "a working secondmate's bare turn-end lost its ordinary absorb"
+  # A terminal outcome surfaces even from a healthy mate: an unmarked resolved:
+  # line self-closing a decision must still wake the primary.
+  printf 'working: routine\nresolved: took A\n' > "$state/sm.status"
+  ! signal_crew_provably_working "$state/sm.status" \
+    || fail "a healthy secondmate's unmarked resolved: line was absorbed as routine progress"
   # Parent-directed content surfaces regardless of busy evidence: decisions,
   # blockers, terminal outcomes, notes, correlation-marked lines (both forms the
   # fleet writes), and any verb the classifier does not know.
