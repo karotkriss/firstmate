@@ -605,8 +605,9 @@ EOF
       publish "$generation" failed "$phases" "$sweep_locked" "$started" "$rc" "$out" "$timings"
       ;;
   esac
+  rc=$?
   run_cleanup "$out" "$timings"
-  return 0
+  return "$rc"
 }
 
 run_cleanup() {  # <output-file> <timing-file>
