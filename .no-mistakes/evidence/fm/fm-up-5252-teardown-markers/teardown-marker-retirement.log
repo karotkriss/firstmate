@@ -1,0 +1,19 @@
+Live validation of #5252 teardown marker/journal retirement + wake-drain scratch rotation
+Branch fm/fm-up-5252-teardown-markers (target c722689) vs base b42d4fa
+Drove the real bin/fm-teardown.sh and bin/fm-wake-drain.sh via the repo test harness
+(run_teardown / $DRAIN invoke the actual scripts end-to-end; herdr/tmux/gh mocked at PATH).
+
+=== Scenarios against TARGET (branch tip) source — all pass ===
+ok - teardown retires the task's own watcher markers and orphaned presentation journal, leaving other tasks' markers alone
+ok - teardown retains a presentation journal bound to a pane other than the closed endpoint
+ok - teardown retires a v1 presentation journal once its token workspace is confirmed gone
+ok - teardown retains a v1 presentation journal while its token workspace is still present
+ok - drain rotates scratch files an interrupted drain left under the queue lock
+
+=== Same scenarios against BASE source (fix reverted) — reproduce the bug ===
+not ok - teardown left the torn-down task's .seen-task-x1_turn-ended behind     (EXIT=1)
+not ok - drain left orphaned scratch .main-eligible-rows.tmp.dead01 behind        (EXIT=1)
+
+Fail-before / pass-after confirms these are genuine regressions for the reported
+"thousands of dead .seen-*/.hb-surfaced-* markers + orphan herdr journals + dead
+wake-drain scratch" accumulation. data/<id>/ retention is left intact by design.
