@@ -212,6 +212,15 @@ test_live_stalled_watch_lock_is_replaced_past_hard_bound() {
   is_live_non_zombie "$pid" || fail "replacement watcher did not stay alive: $(cat "$err")"
   [ "$lock_pid" = "$pid" ] || fail "replacement watcher did not take the lock (holder=$lock_pid)"
   is_live_non_zombie "$holder" && fail "stalled holder survived the eviction"
+  # The lock pid is written inside fm_lock_try_acquire; the replacement message
+  # is echoed just after, so poll for the message rather than grep once and race
+  # the acquire/echo gap.
+  i=0
+  while [ "$i" -lt 100 ]; do
+    grep -E "^watcher: replaced stalled pid $holder \(beacon [0-9]+s past hard bound 3s\)\$" "$out" >/dev/null && break
+    sleep 0.1
+    i=$((i + 1))
+  done
   grep -E "^watcher: replaced stalled pid $holder \(beacon [0-9]+s past hard bound 3s\)\$" "$out" >/dev/null \
     || fail "watcher did not report the replacement: $(cat "$out" "$err")"
   kill "$pid" 2>/dev/null || true
