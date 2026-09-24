@@ -1,0 +1,56 @@
+### Scenario 1: add --start is refused (exit 2, names dispatch path)
+fm-tasks-axi: add --start would place a row In flight with no dispatch record; add it Queued and let bin/fm-spawn.sh start it
+exit=2
+
+### Scenario 2: create --start alias is also refused
+fm-tasks-axi: add --start would place a row In flight with no dispatch record; add it Queued and let bin/fm-spawn.sh start it
+exit=2
+
+### Backlog after refusals (must be unchanged: no In flight row):
+## In flight
+
+## Queued
+
+## Done
+
+### Scenario 3: plain add (no --start) still writes a Queued row
+ok: added hs-2 -> Queued
+task:
+  id: hs-2
+  title: queued work
+  state: queued
+  blocked: no
+  blocked_by: none
+  held: no
+  hold_reason: "-"
+  hold_kind: "-"
+  hold_until: "-"
+  kind: task
+  repo: "-"
+  priority: "-"
+  created: 2026-09-24
+  closed: "-"
+  deps: none
+  links: none
+  body: ""
+help[2]:
+  - Run `tasks-axi start hs-2` to move it to in flight
+  - Run `tasks-axi block hs-2 --by <other>` to record a dependency
+exit=0
+
+### Scenario 4: start <id> passthrough still moves the row to In flight
+ok: start hs-2 -> In flight
+help[1]:
+  - Run `tasks-axi done hs-2 --pr <url>` when it ships
+exit=0
+
+### Final backlog (hs-2 In flight, refused rows never created):
+## In flight
+- [ ] hs-2 - queued work (since 2026-09-24)
+
+## Queued
+## Done
+
+### Scenario 5 (adversarial): --start before the subcommand id, still refused
+fm-tasks-axi: add --start would place a row In flight with no dispatch record; add it Queued and let bin/fm-spawn.sh start it
+exit=2
