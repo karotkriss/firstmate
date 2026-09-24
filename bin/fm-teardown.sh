@@ -3608,14 +3608,20 @@ fi
 
 HERDR_PRESENTATION_JOURNAL="$STATE/$ID.herdr-presentation"
 # teardown_herdr_journal_orphaned: true when the task's own journal names
-# nothing beyond the endpoint this teardown proves gone - a version 1 attempt
-# or a version 2 binding of exactly the recorded pane. Unreadable, malformed,
-# or otherwise-bound journals are not orphans.
+# nothing the session-start sweep could still close - a version 1 attempt whose
+# token-bearing projected workspace is confirmed gone, or a version 2 binding of
+# exactly the recorded pane this teardown proves gone. Unreadable, malformed, or
+# otherwise-bound journals, and a version 1 workspace still present or
+# unreadable, are not orphans.
 teardown_herdr_journal_orphaned() {
   fm_backend_source herdr || return 1
   fm_backend_herdr_projection_journal_snapshot "$HERDR_PRESENTATION_JOURNAL" "$ID" || return 1
-  [ "$FM_BACKEND_HERDR_JOURNAL_VERSION" = 1 ] \
-    || [ "$FM_BACKEND_HERDR_JOURNAL_SESSION:$FM_BACKEND_HERDR_JOURNAL_PANE_ID" = "$T" ]
+  if [ "$FM_BACKEND_HERDR_JOURNAL_VERSION" = 1 ]; then
+    fm_backend_herdr_projection_token_workspace_gone \
+      "$TEARDOWN_HERDR_SESSION" "$HERDR_PRESENTATION_JOURNAL" "$ID"
+  else
+    [ "$FM_BACKEND_HERDR_JOURNAL_SESSION:$FM_BACKEND_HERDR_JOURNAL_PANE_ID" = "$T" ]
+  fi
 }
 HERDR_PRESENTATION_RETIRE_CANDIDATE=0
 HERDR_PRESENTATION_SESSION=
@@ -3772,13 +3778,15 @@ rm -f "$STATE/$ID.turn-ended" "$STATE/$ID.progress" \
 chmod u+w "$STATE/$ID.git-hooks" 2>/dev/null || true
 rm -rf "$STATE/$ID.inbox" "$STATE/$ID.git-hooks"
 # A presentation journal the close path left behind is orphaned once the
-# recorded pane is proven gone (the Herdr gate above) unless it binds some
-# other pane, which the session-start sweep alone may judge (header).
+# recorded pane is proven gone (the Herdr gate above) unless it still names a
+# live projected workspace - a version 2 binding of some other pane, or a
+# version 1 attempt whose token-bearing workspace is still present - which the
+# session-start sweep alone may judge (header).
 if [ -e "$HERDR_PRESENTATION_JOURNAL" ] || [ -L "$HERDR_PRESENTATION_JOURNAL" ]; then
   if teardown_herdr_journal_orphaned; then
     rm -f "$HERDR_PRESENTATION_JOURNAL"
   else
-    echo "warning: retaining herdr presentation journal for $ID; it binds a pane other than the closed endpoint, so the session-start sweep still owns it" >&2
+    echo "warning: retaining herdr presentation journal for $ID; it still names a projected workspace the session-start sweep owns, not the closed endpoint" >&2
   fi
 fi
 # The record is gone, so the backlog must not still show this task in flight

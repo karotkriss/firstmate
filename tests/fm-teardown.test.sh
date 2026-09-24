@@ -2875,6 +2875,100 @@ test_teardown_retains_journal_bound_to_another_pane() {
   pass "teardown retains a presentation journal bound to a pane other than the closed endpoint"
 }
 
+# A version 1 attempt journal binds no pane, so proving the recorded task pane
+# gone does not prove its token-bearing projected workspace gone. When the v2
+# bind never landed (RETIRE_CANDIDATE stays 0 because the metadata workspace no
+# longer matches the drifted token workspace), teardown may retire the journal
+# only after the session's workspace list confirms the token workspace is gone;
+# while it is still present the session-start sweep alone owns it.
+configure_herdr_v1_orphan_workspace_case() {  # <case-dir>
+  local case_dir=$1 token=AbCdEfGhIjKlMnOpQrStUv
+  sed -i.bak 's/^window=.*/window=fmtest:w1:p2/' "$case_dir/state/task-x1.meta"
+  rm -f "$case_dir/state/task-x1.meta.bak"
+  printf '%s\n' \
+    'backend=herdr' \
+    'herdr_session=fmtest' \
+    'herdr_workspace_id=w9' \
+    'herdr_tab_id=w1:t2' \
+    'herdr_pane_id=w1:p2' >> "$case_dir/state/task-x1.meta"
+  printf '%s\n' \
+    'version=1' \
+    'task_id=task-x1' \
+    "projection_id=$token" > "$case_dir/state/task-x1.herdr-presentation"
+  cat > "$case_dir/fakebin/herdr" <<'SH'
+#!/usr/bin/env bash
+set -u
+printf '%s\n' "$*" >> "${FM_FAKE_HERDR_LOG:?}"
+case "${1:-} ${2:-}" in
+  "workspace list")
+    if [ "${FM_FAKE_HERDR_WS_COLLAPSED:-0}" = 1 ]; then
+      printf '%s\n' '{"result":{"workspaces":[{"workspace_id":"w2","active_tab_id":"w2:t2","label":"2ndmate-bravo","focused":true}]}}'
+    else
+      printf '%s\n' '{"result":{"workspaces":[{"workspace_id":"w1","active_tab_id":"w1:t2","label":"firstmate/task-x1 · p:AbCdEfGhIjKlMnOpQrStUv","focused":false},{"workspace_id":"w2","active_tab_id":"w2:t2","label":"2ndmate-bravo","focused":true}]}}'
+    fi
+    ;;
+  "status --json")
+    printf '%s\n' '{"server":{"running":true}}'
+    ;;
+  "session list")
+    printf '%s\n' '{"sessions":[{"name":"fmtest","running":true,"socket_path":"/tmp/fmtest.sock"}]}'
+    ;;
+  "pane close")
+    : > "${FM_FAKE_HERDR_CLOSED:?}"
+    ;;
+  "pane get")
+    printf '%s\n' '{"error":{"code":"pane_not_found"}}' >&2
+    exit 1
+    ;;
+  "agent get")
+    printf '%s\n' '{"error":{"code":"agent_not_found"}}' >&2
+    exit 1
+    ;;
+esac
+SH
+  chmod +x "$case_dir/fakebin/herdr"
+}
+
+test_teardown_retires_v1_journal_when_projected_workspace_gone() {
+  local case_dir log closed
+  case_dir=$(make_case retire-v1-journal-workspace-gone)
+  write_meta "$case_dir" local-only ship
+  configure_herdr_v1_orphan_workspace_case "$case_dir"
+  log="$case_dir/herdr.log"; closed="$case_dir/closed"; : > "$log"
+
+  FM_FAKE_HERDR_LOG="$log" FM_FAKE_HERDR_CLOSED="$closed" FM_FAKE_HERDR_WS_COLLAPSED=1 \
+    run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr" \
+    || fail "retire-v1-journal-workspace-gone: teardown failed: $(cat "$case_dir/stderr")"
+  assert_absent "$case_dir/state/task-x1.herdr-presentation" \
+    "a v1 journal whose token workspace is confirmed gone was not retired"
+  assert_absent "$case_dir/state/task-x1.meta" \
+    "retire-v1-journal-workspace-gone: teardown did not complete"
+  assert_not_contains "$(cat "$log")" "workspace close" \
+    "retire-v1-journal-workspace-gone: teardown must never call workspace close"
+  pass "teardown retires a v1 presentation journal once its token workspace is confirmed gone"
+}
+
+test_teardown_retains_v1_journal_when_projected_workspace_present() {
+  local case_dir log closed
+  case_dir=$(make_case retain-v1-journal-workspace-present)
+  write_meta "$case_dir" local-only ship
+  configure_herdr_v1_orphan_workspace_case "$case_dir"
+  log="$case_dir/herdr.log"; closed="$case_dir/closed"; : > "$log"
+
+  FM_FAKE_HERDR_LOG="$log" FM_FAKE_HERDR_CLOSED="$closed" \
+    run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr" \
+    || fail "retain-v1-journal-workspace-present: teardown failed: $(cat "$case_dir/stderr")"
+  assert_present "$case_dir/state/task-x1.herdr-presentation" \
+    "a v1 journal whose token workspace is still present was wrongly retired, stranding the workspace"
+  assert_absent "$case_dir/state/task-x1.meta" \
+    "retain-v1-journal-workspace-present: teardown did not complete"
+  assert_grep "retaining herdr presentation journal" "$case_dir/stderr" \
+    "teardown retained the v1 journal without saying why"
+  assert_not_contains "$(cat "$log")" "workspace close" \
+    "retain-v1-journal-workspace-present: teardown must not escalate to workspace cleanup"
+  pass "teardown retains a v1 presentation journal while its token workspace is still present"
+}
+
 # --- Fix 1: conclude/abort the task's own parked no-mistakes run before the
 # worker is removed, and Fix 2: reap leaked descendant processes rooted under
 # the task's own worktree/tasktmp - both exercised through the real teardown
@@ -4153,6 +4247,8 @@ test_herdr_projection_teardown_retains_journal_when_close_unconfirmed
 test_herdr_projection_teardown_surfaces_restore_failure_without_blocking_cleanup
 test_teardown_retires_task_watcher_markers_and_orphan_journal
 test_teardown_retains_journal_bound_to_another_pane
+test_teardown_retires_v1_journal_when_projected_workspace_gone
+test_teardown_retains_v1_journal_when_projected_workspace_present
 test_squash_merged_branch_deleted_allows
 test_squash_merged_pr_allows_when_head_ancestor_of_pr_head
 test_no_pr_recorded_discovers_merged_pr_by_branch_allows
