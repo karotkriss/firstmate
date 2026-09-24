@@ -1064,10 +1064,10 @@ SH
 test_pid_identity_is_terminal_width_invariant() {
   # The portable fallback records its identity from a wide shell (the arm or
   # watcher process) but re-reads it inside a narrow-COLUMNS hook, where ps cuts
-  # the command column to the ambient width unless -ww is given. A truncated
-  # command then never equals the recorded one and every fleet command is denied
-  # (issue #799). A long sleep argument makes the cut visible on GNU and BSD ps
-  # alike, so both readings must be byte-identical and carry the whole command.
+  # the command column to the ambient width unless the fallback pins COLUMNS wide.
+  # A truncated command then never equals the recorded one and every fleet command
+  # is denied (issue #799). A long sleep argument makes the cut visible on GNU and
+  # BSD ps alike, so both readings must be byte-identical and carry the whole command.
   local live no_proc narrow wide
   local long_arg=300.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
   no_proc="$TMP_ROOT/no-width-proc"
