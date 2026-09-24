@@ -1,0 +1,6 @@
+# Verifies the DoD's documented command really prints 'draft: no' on a non-draft PR
+$ gh-axi pr view 5534
+  number: 5534
+  title: "fix: refuse merges with unreported required checks"
+  state: open
+  draft: no
