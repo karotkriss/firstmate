@@ -216,6 +216,11 @@ test_wrapper_refuses_add_start() {
   expect_code 2 "$rc" "add --start"
   assert_contains "$out" "bin/fm-spawn.sh" "the add --start refusal did not name the dispatch path"
   assert_equals "$before" "$(cat "$dir/home/data/backlog.md")" "a refused add --start still wrote a row"
+  out=$(wrapper_from_code "$dir" create hs-c "hand-started via alias" --start 2>&1)
+  rc=$?
+  expect_code 2 "$rc" "create --start"
+  assert_contains "$out" "bin/fm-spawn.sh" "the create --start refusal did not name the dispatch path"
+  assert_equals "$before" "$(cat "$dir/home/data/backlog.md")" "a refused create --start still wrote a row"
   wrapper_from_code "$dir" add hs-2 "queued" >/dev/null || fail "plain add was refused"
   assert_grep "hs-2" "$dir/home/data/backlog.md" "plain add did not write its row"
   wrapper_from_code "$dir" start hs-2 >/dev/null || fail "start <id> was refused"

@@ -99,9 +99,11 @@ for arg in "$@"; do
       fail "this command always addresses this home's backlog at $DATA; drop --file, or run tasks-axi directly for another backlog"
       ;;
     --start)
-      if [ "${1:-}" = add ]; then
-        fail "add --start would place a row In flight with no dispatch record; add it Queued and let bin/fm-spawn.sh start it"
-      fi
+      case "${1:-}" in
+        add|create)
+          fail "add --start would place a row In flight with no dispatch record; add it Queued and let bin/fm-spawn.sh start it"
+          ;;
+      esac
       ARGS+=("$arg")
       ;;
     --to|--*-file)
