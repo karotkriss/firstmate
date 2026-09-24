@@ -1,0 +1,21 @@
+signal_crew_provably_working() driven directly against a kind=secondmate .status
+stream (real bin/fm-classify-lib.sh, fake fm-crew-state verdict).
+absorb = benign, no primary wake.  surface = primary must read it.
+
+--- HEALTHY mate (provably working) ---
+OK   routine-work  expect=absorb  got=absorb  | working: step 2 of 5
+OK   routine-paus  expect=absorb  got=absorb  | paused [at=1]: waiting on CI
+OK   work+paused   expect=absorb  got=absorb  | working: step 2 / paused: waiting
+OK   resolved      expect=surface got=surface | working: routine / resolved: took A   (round-1 fix: unmarked resolved still wakes)
+OK   needs-dec     expect=surface got=surface | needs-decision [key=k]: pick
+OK   blocked       expect=surface got=surface | blocked [key=k]: need access
+OK   done          expect=surface got=surface | done [at=1]: shipped
+OK   note          expect=surface got=surface | note: routed reply for parent
+OK   corr-bracket  expect=surface got=surface | working [corr=...]: mirror
+OK   corr-bare     expect=surface got=surface | resolved corr=... [key=k]: answered
+OK   unknown-verb  expect=surface got=surface | shrug: unknown verb
+
+--- UNPROVEN mate (idle / not provably healthy) ---
+OK   unproven-work expect=surface got=surface | working: step 3 of 5
+
+All 12 cases matched expectation.
