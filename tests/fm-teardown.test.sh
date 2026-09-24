@@ -2810,6 +2810,71 @@ test_herdr_projection_teardown_surfaces_restore_failure_without_blocking_cleanup
   pass "herdr projection teardown surfaces failed focus restoration without turning confirmed cleanup into a hard failure"
 }
 
+# A task's per-task watcher markers (.seen-<id>_status, .seen-<id>_turn-ended,
+# .hb-surfaced-<id>) and an orphaned presentation journal - one whose pane the
+# close path proved gone without retiring it - must not outlive teardown, while
+# another task's markers and a journal bound to a different pane must.
+seed_watcher_markers() {  # <case-dir> <task-id>
+  local state="$1/state" id=$2
+  printf '0:0\n' > "$state/.seen-${id}_status"
+  printf '0:0\n' > "$state/.seen-${id}_turn-ended"
+  printf '0\n' > "$state/.hb-surfaced-$id"
+}
+
+test_teardown_retires_task_watcher_markers_and_orphan_journal() {
+  local case_dir log closed restored marker
+  case_dir=$(make_case retire-watcher-markers)
+  write_meta "$case_dir" local-only ship
+  configure_herdr_projection_teardown_case "$case_dir"
+  log="$case_dir/herdr.log"; closed="$case_dir/closed"; restored="$case_dir/restored"; : > "$log"
+  # The projected workspace is already gone before teardown runs, so the close
+  # path cannot match the journal to a live workspace and leaves it behind.
+  : > "$closed"
+  seed_watcher_markers "$case_dir" task-x1
+  seed_watcher_markers "$case_dir" task-y2
+  seed_watcher_markers "$case_dir" task-x1_extra
+  printf '%s\n' 'version=1' 'task_id=task-y2' 'projection_id=ZyXwVuTsRqPoNmLkJiHgFe' \
+    > "$case_dir/state/task-y2.herdr-presentation"
+
+  FM_FAKE_HERDR_LOG="$log" FM_FAKE_HERDR_CLOSED="$closed" FM_FAKE_HERDR_RESTORED="$restored" \
+    run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr" \
+    || fail "retire-watcher-markers: teardown failed: $(cat "$case_dir/stderr")"
+  for marker in .seen-task-x1_status .seen-task-x1_turn-ended .hb-surfaced-task-x1 task-x1.herdr-presentation; do
+    assert_absent "$case_dir/state/$marker" "teardown left the torn-down task's $marker behind"
+  done
+  for marker in .seen-task-y2_status .seen-task-y2_turn-ended .hb-surfaced-task-y2 task-y2.herdr-presentation \
+    .seen-task-x1_extra_status .seen-task-x1_extra_turn-ended .hb-surfaced-task-x1_extra; do
+    assert_present "$case_dir/state/$marker" "teardown removed another task's $marker"
+  done
+  pass "teardown retires the task's own watcher markers and orphaned presentation journal, leaving other tasks' markers alone"
+}
+
+test_teardown_retains_journal_bound_to_another_pane() {
+  local case_dir log closed restored
+  case_dir=$(make_case retain-drifted-journal)
+  write_meta "$case_dir" local-only ship
+  configure_herdr_projection_teardown_case "$case_dir"
+  log="$case_dir/herdr.log"; closed="$case_dir/closed"; restored="$case_dir/restored"; : > "$log"
+  : > "$closed"
+  # A version 2 binding that advanced to a replacement pane the metadata never
+  # recorded may still name a live quarantined space; only the sweep may judge it.
+  printf '%s\n' 'version=2' 'task_id=task-x1' 'projection_id=AbCdEfGhIjKlMnOpQrStUv' \
+    "home=$case_dir" 'session=fmtest' 'workspace_id=w1' 'tab_id=w1:t2' 'pane_id=w1:p9' \
+    'parent_workspace_id=w0' 'parent_label=firstmate' \
+    'workspace_label=└ task-x1 · p:AbCdEfGhIjKlMnOpQrStUv' 'task_label=fm-task-x1' \
+    > "$case_dir/state/task-x1.herdr-presentation"
+
+  FM_FAKE_HERDR_LOG="$log" FM_FAKE_HERDR_CLOSED="$closed" FM_FAKE_HERDR_RESTORED="$restored" \
+    run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr" \
+    || fail "retain-drifted-journal: teardown failed: $(cat "$case_dir/stderr")"
+  assert_present "$case_dir/state/task-x1.herdr-presentation" \
+    "teardown retired a journal bound to a pane it never proved gone"
+  assert_absent "$case_dir/state/task-x1.meta" "retain-drifted-journal: teardown did not complete"
+  assert_grep "retaining herdr presentation journal" "$case_dir/stderr" \
+    "teardown kept the drifted journal without saying why"
+  pass "teardown retains a presentation journal bound to a pane other than the closed endpoint"
+}
+
 # --- Fix 1: conclude/abort the task's own parked no-mistakes run before the
 # worker is removed, and Fix 2: reap leaked descendant processes rooted under
 # the task's own worktree/tasktmp - both exercised through the real teardown
@@ -4086,6 +4151,8 @@ test_forced_teardown_retains_nested_secondmate_home_when_grandchild_close_unconf
 test_herdr_projection_teardown_retires_journal_only_after_confirmed_close
 test_herdr_projection_teardown_retains_journal_when_close_unconfirmed
 test_herdr_projection_teardown_surfaces_restore_failure_without_blocking_cleanup
+test_teardown_retires_task_watcher_markers_and_orphan_journal
+test_teardown_retains_journal_bound_to_another_pane
 test_squash_merged_branch_deleted_allows
 test_squash_merged_pr_allows_when_head_ancestor_of_pr_head
 test_no_pr_recorded_discovers_merged_pr_by_branch_allows
