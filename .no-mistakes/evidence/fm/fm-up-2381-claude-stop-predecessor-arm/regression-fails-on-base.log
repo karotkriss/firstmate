@@ -1,0 +1,3 @@
+### Base hook (e1b7f4f) - new regression test driven against pre-fix hook
+ok - auto-arm: actionable close survives a healthy successor without duplicate delivery
+not ok - the hook returned from the ended attached cycle without starting a handling successor

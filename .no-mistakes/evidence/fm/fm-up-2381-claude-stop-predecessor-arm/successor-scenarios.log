@@ -1,0 +1,10 @@
+### Target hook (719e8fe) - #2381 successor scenarios
+ok - auto-arm: actionable close survives a healthy successor without duplicate delivery
+ok - auto-arm: an attached cycle's end starts a handling successor named after the closed arm before the rewake
+ok - auto-arm: an unconfirmed handling successor is reported in the rewake instead of blocking it
+ok - auto-arm: marker-write refusal defers delivery until one successor commits the notice
+ok - auto-arm: owner-mutex contention preserves successor episode state
+ok - auto-arm: a superseded owner never re-invokes the arm and leaves its successor's claim untouched
+
+### Full suite result (target)
+ALL 51 PASS, exit=0
