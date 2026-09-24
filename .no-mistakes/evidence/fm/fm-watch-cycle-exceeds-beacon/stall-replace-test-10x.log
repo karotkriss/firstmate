@@ -1,0 +1,21 @@
+=== run 1 ===
+ok - live watcher lock with a beacon past the hard bound is replaced, under it is still refused
+=== run 2 ===
+ok - live watcher lock with a beacon past the hard bound is replaced, under it is still refused
+=== run 3 ===
+ok - live watcher lock with a beacon past the hard bound is replaced, under it is still refused
+=== run 4 ===
+ok - live watcher lock with a beacon past the hard bound is replaced, under it is still refused
+=== run 5 ===
+ok - live watcher lock with a beacon past the hard bound is replaced, under it is still refused
+=== run 6 ===
+ok - live watcher lock with a beacon past the hard bound is replaced, under it is still refused
+=== run 7 ===
+ok - live watcher lock with a beacon past the hard bound is replaced, under it is still refused
+=== run 8 ===
+ok - live watcher lock with a beacon past the hard bound is replaced, under it is still refused
+=== run 9 ===
+ok - live watcher lock with a beacon past the hard bound is replaced, under it is still refused
+=== run 10 ===
+ok - live watcher lock with a beacon past the hard bound is replaced, under it is still refused
+10/10 PASSED (no flake)
