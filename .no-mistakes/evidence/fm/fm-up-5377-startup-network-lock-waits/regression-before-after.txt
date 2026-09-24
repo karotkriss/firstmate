@@ -1,0 +1,9 @@
+=== fm-startup-network bounded lock-wait regression ===
+
+## After fix (HEAD=75b9a11) - new regression test:
+ok - fm-startup-network: a held publish lock ends the worker inside its budget with a failed-rerun record
+
+## Before fix (base script from d4f3b78) - same test:
+not ok - the worker was still waiting on the held publish lock 15s past a 2s budget
+
+worktree restored: 0 modified files
