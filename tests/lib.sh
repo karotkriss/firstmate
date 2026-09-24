@@ -179,6 +179,11 @@ fm_test_reap_watchers() {
     case "$seen" in *$'\n'"$state"$'\n'*) continue ;; esac
     seen+="$state"$'\n'
     [ -f "$state/.watch.lock/pid" ] || continue
+    # A fixture that fabricates a lock naming this test process (the
+    # drain-liveness assertion writes $$ with the runner's own identity) is not
+    # an armed watcher. Stopping it would signal the runner, and the suite's
+    # TERM trap re-enters this reap, looping forever. Never reap our own pid.
+    [ "$(cat "$state/.watch.lock/pid" 2>/dev/null || true)" != "$$" ] || continue
     lock_home=$(cat "$state/.watch.lock/fm-home" 2>/dev/null || true)
     [ -n "$lock_home" ] || continue
     FM_HOME="$lock_home" FM_STATE_OVERRIDE="$state" \
