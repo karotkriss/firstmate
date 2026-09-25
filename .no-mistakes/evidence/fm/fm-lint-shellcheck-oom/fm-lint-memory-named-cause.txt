@@ -1,0 +1,13 @@
+=== 1) Real fm-lint.sh, heavy root, 64 MB budget (end-user memory-kill scenario) ===
+exit_code=251
+fm-lint.sh: ShellCheck 0.11.0 (pinned 0.11.0)
+fm-lint.sh: full ShellCheck extended analysis enabled
+shellcheck: out of memory
+fm-lint.sh: ShellCheck exceeded 64 MB on /tmp/fmlint-ev.oKg9cu/heavy.sh
+
+=== 2) Same roots, sufficient 4096 MB budget => clean pass (no weakening) ===
+exit_code=0
+
+=== 3) Unusable budget (63) is refused loudly, not silently accepted ===
+exit_code=2
+fm-lint.sh: FM_LINT_MEMORY_MB must be a whole number of MB, 64 or more, got 63.
