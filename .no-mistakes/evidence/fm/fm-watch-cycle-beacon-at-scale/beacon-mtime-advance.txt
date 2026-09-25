@@ -1,0 +1,4 @@
+cycle-top beacon mtime      : 1790352283
+slow (4s) phase finished at : 1790352288
+mid-cycle refreshed beacon  : 1790352288   (advanced +5s from cycle top, still inside the 10s terminal wait)
+RESULT: PASS - beacon age reflects the current phase, not the whole cycle

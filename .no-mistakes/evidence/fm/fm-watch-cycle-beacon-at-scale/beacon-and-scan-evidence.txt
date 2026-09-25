@@ -1,0 +1,16 @@
+### Beacon freshness / bounded-scan / lock-free skip - targeted live evidence
+
+== fm-watch.sh: beacon refreshes mid-cycle after a slow phase (real subprocess) ==
+ok - a slow phase refreshes the beacon before the terminal wait, so a progressing cycle never reads stale
+
+== fm-watch.sh: beacon stays fresh while absorbing benign wakes (real subprocess) ==
+ok - the liveness beacon stays fresh while the watcher absorbs benign wakes (fm-guard never false-alarms)
+
+== fm-pending-reply-lib.sh: resolve scan reads long log once, then only past cursor + settled-record lock-free skip ==
+ok - the resolve scan reads a long log once, then only past its cursor
+ok - the tick skips settled resolved records without locking and still closes open escalations
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=30396
+
+== fm-watcher-lock.test.sh: self-eviction (watcher_beat singleton recheck) still holds ==
+ok - watcher self-evicts when the lock pid no longer names it
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=59626
