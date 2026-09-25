@@ -1,0 +1,6 @@
+--- valid header ---
+rc=0 missing=''
+--- header missing a phrase ---
+rc=1 missing='must not be edited there'
+--- foreign-language header ---
+rc=1 missing='main-authoritative'

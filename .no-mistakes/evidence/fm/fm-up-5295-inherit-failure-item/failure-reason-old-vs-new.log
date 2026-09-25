@@ -1,0 +1,11 @@
+--- push combined output ---
+unchanged: config/crew-dispatch.json
+unchanged: config/crew-harness
+error: shared captain preferences have no valid primary-authoritative header: missing "must not be edited there"
+unchanged: data/other.md
+--- OLD behavior (first_line): ---
+unchanged: config/crew-dispatch.json
+--- NEW behavior (remote_inherit_failure_reason): ---
+error: shared captain preferences have no valid primary-authoritative header: missing "must not be edited there"
+--- fallback when no error line (interrupted push) ---
+connection reset by host-sm
