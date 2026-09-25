@@ -1,0 +1,11 @@
+=== drain scratch rotation (real bin/fm-wake-drain.sh, isolated driver) ===
+Fixed script (target commit):
+  ok - drain rotates scratch files an interrupted drain left under the queue lock
+  EXIT=0
+
+Same test against pre-fix drain script (base 8d2ee29):
+  not ok - drain failed with orphaned scratch present
+  EXIT=1
+
+-> orphaned .main-eligible-rows.tmp.*/.wake-rows.consume.*/.wake-queue.{retire,ack,actor-view}.*
+   are removed by the locked drain, while the live .main-eligible-rows claim survives.
