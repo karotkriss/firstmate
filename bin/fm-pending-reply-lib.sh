@@ -1491,9 +1491,16 @@ fm_pending_reply_tick() {  # <state-dir>
     task_id=$(fm_pending_reply_get "$rec" task_id)
     phase=$(fm_pending_reply_get "$rec" phase)
     if [ "$phase" = resolved ]; then
-      # Cheap no-op unless an escalation for this record is still open; this is
+      # A no-op unless an escalation for this record is still open; this is
       # the retry that makes the close converge after a transient write failure.
-      fm_pending_reply_close_escalation "$state" "$corr" || true
+      # A resolved record's escalation fields never change again, so that check
+      # runs here unlocked first: a settled record costs one read per poll, not
+      # a library source and a per-record lock, which a ledger of thousands paid
+      # for minutes every cycle. The close re-checks under its lock.
+      if awk -F= '$1 == "escalated_epoch" { e = $2 } $1 == "escalation_closed_epoch" { c = $2 }
+        END { exit !(e != "" && c == "") }' "$rec" 2>/dev/null; then
+        fm_pending_reply_close_escalation "$state" "$corr" || true
+      fi
       continue
     fi
     fm_pending_reply_reconcile_delivery "$state" "$corr" || true

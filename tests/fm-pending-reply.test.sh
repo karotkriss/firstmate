@@ -30,6 +30,7 @@
 #  16. An escalated correlation stays retryable while undelivered, is never reset
 #      once delivered, and its delivery-unknown decision still closes on resolve
 #  17. The resolve scan reads a long parent log once, then only past its cursor
+#  18. The tick skips settled resolved records without their per-record lock
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -821,6 +822,50 @@ test_resolve_scan_reads_only_past_its_cursor() {
   fm_pending_reply_try_resolve "$state" "$corr2" \
     || fail "a log that shrank should be read whole again"
   pass "the resolve scan reads a long log once, then only past its cursor"
+}
+
+# A resolved record with nothing left to close must not take its per-record lock
+# or re-source the lock library on every tick: a live holder of that lock cannot
+# stall the tick, while a resolved record whose escalation is still open is
+# still closed by the same tick.
+# shellcheck disable=SC2031 # $! and the fixture clock are read in this shell.
+test_tick_skips_settled_resolved_records_without_locking() {
+  local home state settled open_close rec lock ready holder tick_pid i
+  home=$(setup_parent settled-ledger)
+  state="$home/state"
+  export FM_PENDING_REPLY_NOW=6700
+  settled=$(fm_pending_reply_create "$home" "$state" "hibit" "settled request")
+  fm_pending_reply_mark_delivered "$state" "$settled"
+  printf 'done [corr=%s]: answered\n' "$settled" > "$state/hibit.status"
+  fm_pending_reply_try_resolve "$state" "$settled" || fail "settled fixture should resolve"
+  open_close=$(fm_pending_reply_create "$home" "$state" "hibit" "resolved but escalation open")
+  fm_pending_reply_mark_delivered "$state" "$open_close"
+  rec=$(fm_pending_reply_path "$state" "$open_close")
+  fm_pending_reply_set "$rec" phase resolved || fail "open-close fixture should transition"
+  fm_pending_reply_set "$rec" escalated_epoch 6600 || fail "open-close fixture should record its escalation"
+  lock="$state/.pending-reply-$settled.lock"
+  ready="$home/lock-held"
+  FM_STATE_OVERRIDE="$state" bash -c '. "$1"; fm_lock_try_acquire "$2" || exit 1; : > "$3"; sleep 30' \
+    _ "$ROOT/bin/fm-wake-lib.sh" "$lock" "$ready" > /dev/null 2>&1 &
+  holder=$!
+  i=0
+  while [ ! -e "$ready" ] && [ "$i" -lt 50 ]; do sleep 0.1; i=$((i + 1)); done
+  [ -e "$ready" ] || { kill "$holder" 2>/dev/null; fail "could not hold the settled record's lock"; }
+  fm_pending_reply_tick "$state" &
+  tick_pid=$!
+  i=0
+  while kill -0 "$tick_pid" 2>/dev/null && [ "$i" -lt 50 ]; do sleep 0.1; i=$((i + 1)); done
+  if kill -0 "$tick_pid" 2>/dev/null; then
+    kill "$holder" "$tick_pid" 2>/dev/null
+    wait "$holder" "$tick_pid" 2>/dev/null
+    fail "the tick waited on a settled record's per-record lock"
+  fi
+  wait "$tick_pid" 2>/dev/null
+  kill "$holder" 2>/dev/null
+  wait "$holder" 2>/dev/null
+  [ -n "$(fm_pending_reply_get "$rec" escalation_closed_epoch)" ] \
+    || fail "a resolved record with an open escalation was not closed"
+  pass "the tick skips settled resolved records without locking and still closes open escalations"
 }
 
 test_restart_preserves_expectation_and_parent_destination() {
@@ -1664,6 +1709,7 @@ test_delivery_confirmation_fallback_reconciles
 test_delivery_confirmation_serializes_with_reconciliation
 test_unrelated_and_stale_corr_cannot_resolve
 test_resolve_scan_reads_only_past_its_cursor
+test_tick_skips_settled_resolved_records_without_locking
 test_restart_preserves_expectation_and_parent_destination
 test_wrong_home_detected_not_acknowledged
 test_unmarked_captain_input_creates_no_expectation
