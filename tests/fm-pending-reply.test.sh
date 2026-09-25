@@ -29,6 +29,7 @@
 #  15. Remote parent-replies.status is not classified as wrong-home
 #  16. An escalated correlation stays retryable while undelivered, is never reset
 #      once delivered, and its delivery-unknown decision still closes on resolve
+#  17. The resolve scan reads a long parent log once, then only past its cursor
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -774,6 +775,54 @@ test_unrelated_and_stale_corr_cannot_resolve() {
   pass "unrelated events and stale correlation ids cannot resolve"
 }
 
+# A long parent log is read whole once, then only from the scan cursor: bytes
+# below it are never read again, so a reply planted there in place stays
+# unseen, while a line split across two appends is still matched once whole.
+# A log that shrank is read whole again.
+test_resolve_scan_reads_only_past_its_cursor() {
+  local home state corr status reply placeholder corr2 status2
+  home=$(setup_parent scan-cursor)
+  state="$home/state"
+  # shellcheck disable=SC2031
+  export FM_PENDING_REPLY_NOW=6500
+  corr=$(fm_pending_reply_create "$home" "$state" "hibit" "long log")
+  fm_pending_reply_mark_delivered "$state" "$corr"
+  status="$state/hibit.status"
+  reply=$(printf 'done [corr=%s]: planted below the cursor' "$corr")
+  placeholder=$(printf '%*s' "${#reply}" '' | tr ' ' x)
+  printf '%s\n' "$placeholder" > "$status"
+  awk 'BEGIN { for (i = 1; i <= 20000; i++) printf "working [at=%d]: step %d of a long routed lane\n", 1000 + i, i }' >> "$status"
+  if fm_pending_reply_try_resolve "$state" "$corr"; then
+    fail "a long log without the reply must not resolve"
+  fi
+  printf '%s' "$reply" | dd of="$status" conv=notrunc 2>/dev/null \
+    || fail "could not rewrite the first line in place"
+  printf 'working: still going\n' >> "$status"
+  if fm_pending_reply_try_resolve "$state" "$corr"; then
+    fail "the second scan re-read bytes below its cursor"
+  fi
+  printf 'done [' >> "$status"
+  if fm_pending_reply_try_resolve "$state" "$corr"; then
+    fail "a partial line without the token must not resolve"
+  fi
+  printf 'corr=%s]: finished after a split write\n' "$corr" >> "$status"
+  fm_pending_reply_try_resolve "$state" "$corr" \
+    || fail "a reply completed across two appends should resolve"
+  [ "$(phase_of "$state" "$corr")" = resolved ] || fail "phase should be resolved"
+
+  corr2=$(fm_pending_reply_create "$home" "$state" "shrunk" "rotated log")
+  fm_pending_reply_mark_delivered "$state" "$corr2"
+  status2="$state/shrunk.status"
+  awk 'BEGIN { for (i = 1; i <= 2000; i++) printf "working: step %d\n", i }' > "$status2"
+  if fm_pending_reply_try_resolve "$state" "$corr2"; then
+    fail "a log without the reply must not resolve"
+  fi
+  printf 'done [corr=%s]: after the log shrank\n' "$corr2" > "$status2"
+  fm_pending_reply_try_resolve "$state" "$corr2" \
+    || fail "a log that shrank should be read whole again"
+  pass "the resolve scan reads a long log once, then only past its cursor"
+}
+
 test_restart_preserves_expectation_and_parent_destination() {
   local home state corr rec parent_status parent_home
   home=$(setup_parent restart)
@@ -1052,17 +1101,12 @@ test_tick_skips_terminal_and_reuses_target_observation() {
     }
     # shellcheck disable=SC2329
     fm_backend_capture() { fail "native busy observations should not capture"; }
+    # Count every status scan, then run the real one.
+    eval "real_scan_resolve() $(declare -f fm_pending_reply_scan_resolve | tail -n +2)"
     # shellcheck disable=SC2329
-    fm_pending_reply_find_resolve_line() {
-      local status_file=$1 corr=$2 line
-      printf '%s\t%s\n' "$status_file" "$corr" >> "$scan_log"
-      [ -f "$status_file" ] || return 0
-      while IFS= read -r line || [ -n "$line" ]; do
-        fm_pending_reply_line_resolves "$line" "$corr" || continue
-        printf '%s' "$line"
-        return 0
-      done < "$status_file"
-      return 0
+    fm_pending_reply_scan_resolve() {
+      printf '%s\t%s\n' "$1" "$2" >> "$scan_log"
+      real_scan_resolve "$@"
     }
     fm_pending_reply_tick "$state"
     probes=$(wc -l < "$probe_log" | tr -d ' ')
@@ -1619,6 +1663,7 @@ test_undelivered_records_are_scan_immutable
 test_delivery_confirmation_fallback_reconciles
 test_delivery_confirmation_serializes_with_reconciliation
 test_unrelated_and_stale_corr_cannot_resolve
+test_resolve_scan_reads_only_past_its_cursor
 test_restart_preserves_expectation_and_parent_destination
 test_wrong_home_detected_not_acknowledged
 test_unmarked_captain_input_creates_no_expectation
