@@ -1,0 +1,8 @@
+### New pi-code stand-down test (post-fix, real hook driven via stdin)
+ok - auto-arm: stands down only on a pi-code-delivered transcript_path (/.pi/)
+
+### Regression proof: same test against PRE-FIX hook (base 1a814e4)
+not ok - hook must stand down silently on a pi-code-delivered transcript_path: expected exit 0, got 2
+
+### Full suite result (post-fix)
+EXIT=0 (all 52 pass)
