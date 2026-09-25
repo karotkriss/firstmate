@@ -1,0 +1,23 @@
+fm-project-mode.sh live CLI transcript (issue #1977)
+Fixture registry (data/projects.md):
+  - 048. Blast- Lease summary drafter [local-only] - description (added 2026-08-08)
+  - foo bar [local-only +yolo branch=x/] - fixture
+  - foo [direct-PR] - fixture
+  - controlproj [direct-PR] - fixture
+  - legacyproj - just a description
+  - a.b [direct-PR] - literal-match probe
+
+REGRESSION (fail-before / pass-after) on the issue's exact name:
+  BEFORE (base 1a814e4): stdout=[no-mistakes off]  stderr=[warn: project "..." not in registry; defaulting to no-mistakes off]
+  AFTER  (target 9fc0234): stdout=[local-only off]  stderr=[]
+
+Scenarios on target build:
+  "048. Blast- Lease summary drafter"          -> local-only off        (no warning)     PASS
+  foo (single-word prefix of "foo bar")        -> direct-PR off                          PASS
+  "foo bar"                                    -> local-only on                          PASS
+  --branch-prefix "foo bar"                    -> x/                                     PASS
+  controlproj (single-word control)           -> direct-PR off                          PASS
+  legacyproj (no bracket, legacy default)     -> no-mistakes off                         PASS
+  axb (must NOT regex-match "a.b")            -> no-mistakes off (warn: not in registry) PASS
+  "a.b" (literal name)                        -> direct-PR off                           PASS
+  "048. Blast-" (partial prefix, must miss)   -> no-mistakes off (warn: not in registry) PASS
