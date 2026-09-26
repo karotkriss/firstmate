@@ -1,0 +1,21 @@
+Issue #5151: an already-installed announced version was double-reported.
+Incident-shaped fixture: older self-announcing copy earlier on PATH,
+newer already-installed copy later on PATH.
+
+===== BASE script (base commit d1a332c, before fix) =====
+tool updates: no-mistakes update available: A new version of no-mistakes is available: v1.46.0 -> v1.47.0; no-mistakes update not in effect: PATH resolves 1.46.0 at .../old/bin/no-mistakes-fixture but 1.47.0 is installed at .../new/bin/no-mistakes-fixture
+
+===== FIXED script (target commit 1641625, after fix) =====
+tool updates: no-mistakes update not in effect: PATH resolves 1.46.0 at .../old/bin/no-mistakes-fixture but 1.47.0 is installed at .../new/bin/no-mistakes-fixture
+
+The announced version (v1.47.0) is already installed, so the fixed script
+reports ONLY "update not in effect" and drops the false "update available".
+
+===== FIXED: announced version genuinely newer than every installed copy =====
+Installed copies 1.46.0 and 1.46.5; announcement names v1.47.0.
+tool updates: no-mistakes update available: A new version of no-mistakes is available: v1.46.0 -> v1.47.0; no-mistakes update not in effect: ...
+(update available is correctly still reported.)
+
+===== FIXED: announcement names no readable version (boundary, unchanged) =====
+tool updates: no-mistakes update available: A new version of no-mistakes is available. Please update.; no-mistakes update not in effect: ...
+(reported as today, even though a newer copy is installed.)
