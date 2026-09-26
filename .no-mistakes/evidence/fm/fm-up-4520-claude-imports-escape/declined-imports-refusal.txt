@@ -1,0 +1,16 @@
+Scenario: fm-claude-trust.sh refuses a project that already declined external
+CLAUDE.md imports, and the refusal now names the recovery.
+
+Setup: a temp git project + linked worktree, with an isolated .claude.json whose
+project entry carries hasClaudeMdExternalIncludesApproved:false and
+hasClaudeMdExternalIncludesWarningShown:true (a recorded "No, disable").
+
+=== RUN: bin/fm-claude-trust.sh <worktree> <project> (worktree mode) ===
+error: project entry for <project> in <store> already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+error: refusing to pre-register Claude trust: could not record trust for '<worktree>' and project '<project>' in '<store>'
+EXIT=1
+
+- Message keeps its original wording as the start ("already declined external
+  CLAUDE.md imports; refusing to override that consent") and appends the recovery.
+- Store came back byte-for-byte identical: the refusal is unchanged (still refused,
+  nothing overridden), only the message text is richer.
