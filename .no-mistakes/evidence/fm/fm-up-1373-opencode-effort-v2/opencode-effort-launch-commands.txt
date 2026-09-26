@@ -1,0 +1,15 @@
+Emitted worker launch commands from bin/fm-spawn.sh (captured from the fake-tmux
+launch log driven by tests/fm-spawn-dispatch-profile.test.sh). These are the
+literal commands firstmate would run to launch an OpenCode worker.
+
+1) anthropic model + effort high  -> effort written as build agent variant:
+OPENCODE_CONFIG_CONTENT='{"permission":{"*":"allow"},"agent":{"build":{"model":"anthropic/claude-sonnet-4-5","variant":"high"}}}' opencode --model 'anthropic/claude-sonnet-4-5' --prompt ...
+
+2) openai model + effort xhigh    -> effort written as build agent variant:
+OPENCODE_CONFIG_CONTENT='{"permission":{"*":"allow"},"agent":{"build":{"model":"openai/gpt-5.6-sol","variant":"xhigh"}}}' opencode --model 'openai/gpt-5.6-sol' --prompt ...
+
+3) no effort chosen               -> byte-identical permission-only config:
+OPENCODE_CONFIG_CONTENT='{"permission":{"*":"allow"}}' opencode --model 'anthropic/claude-sonnet-4-5' --prompt ...
+
+4) anthropic model + effort medium (outside the anthropic variant family) -> variant omitted, permission-only:
+OPENCODE_CONFIG_CONTENT='{"permission":{"*":"allow"}}' opencode --model 'anthropic/claude-sonnet-4-5' --prompt ...

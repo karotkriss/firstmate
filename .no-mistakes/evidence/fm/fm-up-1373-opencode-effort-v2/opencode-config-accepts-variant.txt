@@ -1,0 +1,11 @@
+Live proof that real opencode (v1.18.32) accepts the config the launch writes.
+Isolated XDG dirs, OPENCODE_CONFIG_CONTENT set to the emitted JSON, --pure.
+
+$ OPENCODE_CONFIG_CONTENT='{"permission":{"*":"allow"},"agent":{"build":{"model":"anthropic/claude-sonnet-4-5","variant":"high"}}}' opencode debug agent build --pure
+{
+  "model": { "providerID": "anthropic", "modelID": "claude-sonnet-4-5" },
+  "variant": "high"
+}
+
+opencode resolves the default `build` agent's `variant` to the profile effort,
+keyed to the resolved model -> the profile effort now reaches the worker.
