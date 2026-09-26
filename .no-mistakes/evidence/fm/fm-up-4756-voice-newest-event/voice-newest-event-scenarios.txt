@@ -1,0 +1,37 @@
+Voice status reader (#4756): newest-status-event scan, driven via fm_voice_records.py CLI
+=======================================================================================
+
+SCENARIO: bug_prose_after_paused
+  status log:
+    | working: opened the branch
+    | paused: holding for the upstream tool release
+    | The release window opens tomorrow.
+  reader reports worker_states: {'paused': 1}   (expected verb: paused)
+
+SCENARIO: adversarial_unknown_verb
+  status log:
+    | working: doing stuff
+    | frobnicate: some weird declaration
+  reader reports worker_states: {'note': 1}   (expected verb: note)
+
+SCENARIO: no_event_only_prose
+  status log:
+    | Just some free text with no verb
+    | Another prose line here.
+  reader reports worker_states: {'note': 1}   (expected verb: note)
+
+SCENARIO: bracket_metadata
+  status log:
+    | done [token]: shipped it
+    | cleanup notes for the human reader
+  reader reports worker_states: {'done': 1}   (expected verb: done)
+
+SCENARIO: capital_prefix_prose
+  status log:
+    | blocked: waiting on api
+    | Update: things changed
+  reader reports worker_states: {'blocked': 1}   (expected verb: blocked)
+
+REGRESSION CHECK (pre-fix base d1a332c on the bug scenario):
+  base reports: {'note': 1}
+  -> note (bug) before fix, paused after fix
