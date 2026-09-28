@@ -248,9 +248,11 @@ HOME_LABEL=$(printf '%s' "$SNAP" | jq -er '.fm_home | strings | split("/") | (.[
 # each jq argv argument is capped by the kernel's MAX_ARG_STRLEN (128 KiB), so a
 # large fleet's accumulated rows would kill the projection (the
 # fm-fleet-snapshot.sh transport pattern). One JSON array per fetched repo.
-PR_ROWS_FILE=$(mktemp "${TMPDIR:-/tmp}/fm-bearings-prs.XXXXXX") \
-  || { echo "fm-bearings-snapshot: temporary PR transport file creation failed" >&2; exit 1; }
-trap 'rm -f "$PR_ROWS_FILE"' EXIT
+# The transport files exist only under --include-prs; the default snapshot needs
+# no temporary storage. The EXIT trap removes whichever were created.
+PR_ROWS_FILE=""
+tasks_file=""
+trap 'rm -f "$PR_ROWS_FILE" "$tasks_file"' EXIT
 PR_STATUS='not_requested (run: /bearings include PRs)'
 PR_REPOS_TOTAL=0
 PR_REPOS_SHOWN=0
@@ -273,6 +275,8 @@ if [ "$INCLUDE_PRS" = 1 ]; then
   if ! command -v gh >/dev/null 2>&1; then
     PR_STATUS='unavailable (gh not found)'
   else
+    PR_ROWS_FILE=$(mktemp "${TMPDIR:-/tmp}/fm-bearings-prs.XXXXXX") \
+      || { echo "fm-bearings-snapshot: temporary PR transport file creation failed" >&2; exit 1; }
     # Candidate repos: recorded pr= URLs plus live worktree origins. Deduped.
     repos=""
     while IFS= read -r u; do
@@ -334,7 +338,6 @@ EOF
       printf '%s' "$repo_result" | jq -c '.rows' >> "$PR_ROWS_FILE" \
         || { echo "fm-bearings-snapshot: PR transport file write failed" >&2; exit 1; }
     done
-    rm -f "$tasks_file"
     PR_REPOS_SHOWN=$nrepos
     PR_ROWS_CAPPED=$ncapped
     PR_ROWS_MIN_TOTAL=$((npr + ncapped))
@@ -385,7 +388,7 @@ MODEL=$(printf '%s' "$SNAP" | jq \
   --argjson pr_rows_capped "$PR_ROWS_CAPPED" \
   --argjson pr_rows_min_total "$PR_ROWS_MIN_TOTAL" \
   --argjson return_catchup "$RETURN_CATCHUP" \
-  --slurpfile candidate_pr_batches "$PR_ROWS_FILE" "$FM_LANDED_JQ_DEFS"'
+  --slurpfile candidate_pr_batches "${PR_ROWS_FILE:-/dev/null}" "$FM_LANDED_JQ_DEFS"'
   def trunc($n): if . == null then null else
     (tostring | gsub("\\s+"; " ") | if (length > $n) then (.[:$n] + "…") else . end) end;
   def fit($n):
