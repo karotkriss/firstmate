@@ -1168,6 +1168,13 @@ require_recorded_pr_identity() {
   existing=$(grep '^pr=' "$META" | tail -1 | cut -d= -f2- || true)
   [ -n "$existing" ] || return 0
   [ "$existing" = "$URL" ] && return 0
+  # Parsed in a subshell so FM_PR_* stays the new URL's identity for every
+  # caller after this gate; only the already-notified verdict escapes.
+  if ( fm_pr_url_parse "$existing" \
+    && fm_pr_poll_merge_already_notified "$STATE" "$ID" \
+      "$FM_PR_PROVIDER" "$FM_PR_HOST" "$FM_PR_PATH" "$FM_PR_NUMBER" ); then
+    return 0
+  fi
   echo "error: task $ID is bound to $existing, not $URL" >&2
   return 1
 }
