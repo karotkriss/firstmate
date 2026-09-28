@@ -1124,6 +1124,15 @@ wait_for_lines "$RING_LOG" 1 \
   || fail "the newly captured round never rang its owner's doorbell"
 [ "$(wc -l < "$RING_LOG" | tr -d ' ')" = 1 ] \
   || fail "a single newly captured round rang more than once: $(cat "$RING_LOG")"
+i=0
+while [ "$i" -lt 5 ]; do
+  PATH="$RING_BIN:$ADOPT_BIN:$PATH" FM_SEND_LOG="$RING_LOG" pe "$HREDELIVER" reconcile >/dev/null 2>&1 || true
+  i=$((i + 1))
+done
+[ "$(wc -l < "$RING_LOG" | tr -d ' ')" = 1 ] \
+  || fail "an unchanged active note re-rang the doorbell on every reconcile: $(cat "$RING_LOG")"
+[ -f "$HREDELIVER/state/worker-6.inbox/001.msg" ] \
+  || fail "repeated reconciles dropped the still-active note from the inbox"
 mv "$HREDELIVER/state/worker-6.inbox/001.msg" \
   "$HREDELIVER/state/worker-6.inbox/handled/001.msg"
 i=0
