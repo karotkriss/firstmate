@@ -1,0 +1,11 @@
+### Scenario A: live run proceeds -> updater suppressed for the spawned claude
+-- gate let the live run PROCEED --
+claude: auto-updater DISABLED (would not rewrite ~/.local/bin/claude)
+
+### Scenario B (adversarial): run disabled -> gate SKIPS, no live claude spawned
+skip: live: disabled by FM_FAKE_LIVE=0
+(exit before spawning claude: 0)
+
+### Scenario C (adversarial): tool absent -> gate SKIPS, no live claude spawned
+not ok - FM_FAKE_LIVE was requested but fmfakeharness is not installed
+(exit before spawning claude: 1)
