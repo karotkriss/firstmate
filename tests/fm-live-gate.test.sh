@@ -15,8 +15,8 @@
 # cheap because a disabled gate exits before a guard touches a harness.
 set -u
 
-# shellcheck source=tests/lib.sh
-. "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+# shellcheck source=tests/fixtures.sh
+. "$(dirname "${BASH_SOURCE[0]}")/fixtures.sh"
 
 TMP_ROOT=$(fm_test_tmproot fm-live-gate)
 BIN="$TMP_ROOT/bin"
@@ -199,24 +199,46 @@ test_gate_exports_disable_autoupdater_for_a_proceeding_run() {
     "a live run the gate lets proceed must export DISABLE_AUTOUPDATER=1 so Claude Code's auto-updater cannot run"
 }
 
-test_disable_autoupdater_reaches_a_child_process_the_guard_spawns() {
-  local path out rc
-  path="$TMP_ROOT/pane.test.sh"
-  {
-    printf '#!/usr/bin/env bash\nset -u\n'
-    printf '. "%s/tests/lib.sh"\n' "$ROOT"
-    printf 'fm_live_gate default-on FM_FAKE_LIVE fmfakeharness\n'
-    printf 'bash -c %s\n' \
-      "'printf \"pane:%s\\n\" \"\${DISABLE_AUTOUPDATER:-unset}\"'"
-  } > "$path"
-  chmod +x "$path"
+test_disable_autoupdater_reaches_the_claude_pane_on_the_fm_spawn_launch_path() {
+  # The gate exports DISABLE_AUTOUPDATER=1 into the ambient environment; this
+  # proves fm-spawn's claude launch construction preserves that ambient value
+  # all the way to the harness process, the inheritance a real pane relies on.
+  # It stages a real claude launch, then runs that exact command as a synthetic
+  # pane whose only claude is a stub recording the variable it inherited. (A
+  # backend daemon already running before the gate exported the variable is a
+  # separate case this cannot cover without launcher support.)
+  local case_dir home proj wt fakebin launchlog panebin panelog launch rc
+  case_dir="$TMP_ROOT/spawn-launch-path"
+  home="$case_dir/home"; proj="$case_dir/proj"; wt="$case_dir/wt"
+  launchlog="$case_dir/launch.log"
+  fakebin=$(make_spawn_fakebin "$case_dir/fake" gh gh-axi)
+  fm_test_spawn_home "$home" claude
+  fm_git_worktree "$proj" "$wt" "wt-autoupdater"
+  fm_test_spawn_brief "$home" AU-1
+  : > "$launchlog"
+  FM_FAKE_LAUNCH_LOG="$launchlog" \
+    fm_test_run_spawn "$home" "$wt" "$fakebin" AU-1 "$proj" --mode no-mistakes --yolo off \
+    >/dev/null 2>&1 || fail "the claude spawn must stage its launch command"
+  launch=$(cat "$launchlog")
+  [ -n "$launch" ] || fail "no claude launch command was captured"
+
+  # Synthetic pane: only claude is a recording stub, and DISABLE_AUTOUPDATER=1
+  # stands in for the value the live gate put in the ambient environment.
+  panebin="$case_dir/panebin"; mkdir -p "$panebin"
+  panelog="$case_dir/pane-autoupdater.log"
+  cat > "$panebin/claude" <<SH
+#!/usr/bin/env bash
+printf 'autoupdater=%s\n' "\${DISABLE_AUTOUPDATER:-unset}" > "$panelog"
+exit 0
+SH
+  chmod +x "$panebin/claude"
   set +e
-  out=$(clean_env PATH="$BIN:/usr/bin:/bin" "$path" 2>&1)
+  DISABLE_AUTOUPDATER=1 PATH="$panebin:/usr/bin:/bin" bash -c "$launch" >/dev/null 2>&1
   rc=$?
   set -e
-  expect_code 0 "$rc" "a guard opened with the shared gate must run its spawned child cleanly"
-  assert_contains "$out" "pane:1" \
-    "a live run's DISABLE_AUTOUPDATER export must reach a child process it spawns, the same inheritance a real harness pane relies on"
+  expect_code 0 "$rc" "the staged claude launch must run cleanly in the synthetic pane"
+  assert_contains "$(cat "$panelog")" "autoupdater=1" \
+    "fm-spawn's claude launch must pass the ambient DISABLE_AUTOUPDATER through to the harness pane, so the auto-updater cannot run"
 }
 
 test_every_live_guard_is_wired_to_the_shared_gate() {
@@ -259,6 +281,6 @@ test_gate_lets_a_guard_drive_the_real_fleet_scripts_under_a_gate_marker
 pass "the shared gate carries the gate-refusal bypass into every live guard"
 test_gate_exports_disable_autoupdater_for_a_proceeding_run
 pass "a proceeding live run exports DISABLE_AUTOUPDATER=1"
-test_disable_autoupdater_reaches_a_child_process_the_guard_spawns
-pass "DISABLE_AUTOUPDATER reaches a child process the way a real harness pane would inherit it"
+test_disable_autoupdater_reaches_the_claude_pane_on_the_fm_spawn_launch_path
+pass "DISABLE_AUTOUPDATER rides fm-spawn's claude launch through to the harness pane"
 test_every_live_guard_is_wired_to_the_shared_gate
