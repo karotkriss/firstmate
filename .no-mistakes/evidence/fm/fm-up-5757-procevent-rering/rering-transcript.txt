@@ -1,0 +1,26 @@
+Issue #5757 - lavish board result re-ring regression, live reconcile drive
+
+Scenario: one worker-owned lavish result stays pending across reconcile cycles,
+then the worker acknowledges it (mv record -> handled/), then more cycles run.
+
+########## BASE (pre-fix 6b0f5a0) ##########
+=== [base] driving 5 reconcile cycles on one unchanging pending board result ===
+rings across 5 cycles (pre-ack): 5
+active inbox records: 1
+acknowledged record 001.msg -> handled/
+=== [base] driving 3 more reconcile cycles AFTER acknowledgement ===
+rings across 3 post-ack cycles: 3
+records resurrected back into active inbox: 1
+records remaining in handled/: 0
+---SUMMARY[base] pre_ack_rings=5 post_ack_rings=3 resurrected=1 handled=0 active=1---
+
+########## FIX (target ac2faee) ##########
+=== [fix] driving 5 reconcile cycles on one unchanging pending board result ===
+rings across 5 cycles (pre-ack): 1
+active inbox records: 1
+acknowledged record 001.msg -> handled/
+=== [fix] driving 3 more reconcile cycles AFTER acknowledgement ===
+rings across 3 post-ack cycles: 0
+records resurrected back into active inbox: 0
+records remaining in handled/: 1
+---SUMMARY[fix] pre_ack_rings=1 post_ack_rings=0 resurrected=0 handled=1 active=1---
