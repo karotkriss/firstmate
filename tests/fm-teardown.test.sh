@@ -2901,7 +2901,11 @@ set -u
 printf '%s\n' "$*" >> "${FM_FAKE_HERDR_LOG:?}"
 case "${1:-} ${2:-}" in
   "workspace list")
-    if [ "${FM_FAKE_HERDR_WS_COLLAPSED:-0}" = 1 ]; then
+    if [ "${FM_FAKE_HERDR_WS_MALFORMED:-0}" = 1 ]; then
+      # A non-object entry before a live token-bearing workspace: the token query
+      # is ambiguous, so teardown must treat it as unknown and keep the journal.
+      printf '%s\n' '{"result":{"workspaces":[42,{"workspace_id":"w1","active_tab_id":"w1:t2","label":"firstmate/task-x1 · p:AbCdEfGhIjKlMnOpQrStUv","focused":false}]}}'
+    elif [ "${FM_FAKE_HERDR_WS_COLLAPSED:-0}" = 1 ]; then
       printf '%s\n' '{"result":{"workspaces":[{"workspace_id":"w2","active_tab_id":"w2:t2","label":"2ndmate-bravo","focused":true}]}}'
     else
       printf '%s\n' '{"result":{"workspaces":[{"workspace_id":"w1","active_tab_id":"w1:t2","label":"firstmate/task-x1 · p:AbCdEfGhIjKlMnOpQrStUv","focused":false},{"workspace_id":"w2","active_tab_id":"w2:t2","label":"2ndmate-bravo","focused":true}]}}'
@@ -2967,6 +2971,29 @@ test_teardown_retains_v1_journal_when_projected_workspace_present() {
   assert_not_contains "$(cat "$log")" "workspace close" \
     "retain-v1-journal-workspace-present: teardown must not escalate to workspace cleanup"
   pass "teardown retains a v1 presentation journal while its token workspace is still present"
+}
+
+test_teardown_retains_v1_journal_when_workspace_query_ambiguous() {
+  local case_dir log closed
+  case_dir=$(make_case retain-v1-journal-workspace-ambiguous)
+  write_meta "$case_dir" local-only ship
+  configure_herdr_v1_orphan_workspace_case "$case_dir"
+  log="$case_dir/herdr.log"; closed="$case_dir/closed"; : > "$log"
+
+  # A malformed workspace-list entry makes the token query ambiguous: teardown
+  # cannot prove the token workspace gone, so it must keep the journal.
+  FM_FAKE_HERDR_LOG="$log" FM_FAKE_HERDR_CLOSED="$closed" FM_FAKE_HERDR_WS_MALFORMED=1 \
+    run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr" \
+    || fail "retain-v1-journal-workspace-ambiguous: teardown failed: $(cat "$case_dir/stderr")"
+  assert_present "$case_dir/state/task-x1.herdr-presentation" \
+    "a v1 journal was retired even though the workspace query was ambiguous"
+  assert_absent "$case_dir/state/task-x1.meta" \
+    "retain-v1-journal-workspace-ambiguous: teardown did not complete"
+  assert_grep "retaining herdr presentation journal" "$case_dir/stderr" \
+    "teardown retained the v1 journal without saying why"
+  assert_not_contains "$(cat "$log")" "workspace close" \
+    "retain-v1-journal-workspace-ambiguous: teardown must not escalate to workspace cleanup"
+  pass "teardown retains a v1 presentation journal when the workspace query is ambiguous"
 }
 
 # --- Fix 1: conclude/abort the task's own parked no-mistakes run before the
@@ -4249,6 +4276,7 @@ test_teardown_retires_task_watcher_markers_and_orphan_journal
 test_teardown_retains_journal_bound_to_another_pane
 test_teardown_retires_v1_journal_when_projected_workspace_gone
 test_teardown_retains_v1_journal_when_projected_workspace_present
+test_teardown_retains_v1_journal_when_workspace_query_ambiguous
 test_squash_merged_branch_deleted_allows
 test_squash_merged_pr_allows_when_head_ancestor_of_pr_head
 test_no_pr_recorded_discovers_merged_pr_by_branch_allows
