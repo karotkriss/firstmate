@@ -1,0 +1,10 @@
+## fm-pr-merge PR-rebind scenarios (real bin/fm-pr-merge.sh driven via run_pr_merge)
+
+# with fix (target commit):
+ok - distinct merged PRs for one task retain distinct captain-facing wakes
+ok - the away record does not bypass red checks, and a recorded pr= must match the URL
+
+
+# regression control - fix reverted, same distinct-merge scenario:
+not ok - distinct-merge-wakes: second merge failed
+(second merge refused with "error: task task-x1 is bound to <pr-1>, not <pr-2>")
