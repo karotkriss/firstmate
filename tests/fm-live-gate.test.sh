@@ -179,6 +179,46 @@ test_gate_lets_a_guard_drive_the_real_fleet_scripts_under_a_gate_marker() {
     "the shared gate must carry the test-suite bypass so a live guard can drive the real fleet scripts"
 }
 
+test_gate_exports_disable_autoupdater_for_a_proceeding_run() {
+  local path out rc
+  path="$TMP_ROOT/proceed-autoupdater.test.sh"
+  {
+    printf '#!/usr/bin/env bash\nset -u\n'
+    printf '. "%s/tests/lib.sh"\n' "$ROOT"
+    printf 'fm_live_gate default-on FM_FAKE_LIVE fmfakeharness\n'
+    # shellcheck disable=SC2016 # the written guard script expands this at its own runtime, not here
+    printf 'printf "autoupdater=%%s\\n" "${DISABLE_AUTOUPDATER:-unset}"\n'
+  } > "$path"
+  chmod +x "$path"
+  set +e
+  out=$(clean_env PATH="$BIN:/usr/bin:/bin" "$path" 2>&1)
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "a proceeding guard must exit cleanly"
+  assert_contains "$out" "autoupdater=1" \
+    "a live run the gate lets proceed must export DISABLE_AUTOUPDATER=1 so Claude Code's auto-updater cannot run"
+}
+
+test_disable_autoupdater_reaches_a_child_process_the_guard_spawns() {
+  local path out rc
+  path="$TMP_ROOT/pane.test.sh"
+  {
+    printf '#!/usr/bin/env bash\nset -u\n'
+    printf '. "%s/tests/lib.sh"\n' "$ROOT"
+    printf 'fm_live_gate default-on FM_FAKE_LIVE fmfakeharness\n'
+    printf 'bash -c %s\n' \
+      "'printf \"pane:%s\\n\" \"\${DISABLE_AUTOUPDATER:-unset}\"'"
+  } > "$path"
+  chmod +x "$path"
+  set +e
+  out=$(clean_env PATH="$BIN:/usr/bin:/bin" "$path" 2>&1)
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "a guard opened with the shared gate must run its spawned child cleanly"
+  assert_contains "$out" "pane:1" \
+    "a live run's DISABLE_AUTOUPDATER export must reach a child process it spawns, the same inheritance a real harness pane relies on"
+}
+
 test_every_live_guard_is_wired_to_the_shared_gate() {
   local script out listing checked=0
   listing=$("$ROOT/bin/fm-test-run.sh" --family live-harness-optin --list) \
@@ -217,4 +257,8 @@ test_any_of_several_entry_points_turns_a_guard_on
 pass "any entry point of a multi-mode guard turns it on"
 test_gate_lets_a_guard_drive_the_real_fleet_scripts_under_a_gate_marker
 pass "the shared gate carries the gate-refusal bypass into every live guard"
+test_gate_exports_disable_autoupdater_for_a_proceeding_run
+pass "a proceeding live run exports DISABLE_AUTOUPDATER=1"
+test_disable_autoupdater_reaches_a_child_process_the_guard_spawns
+pass "DISABLE_AUTOUPDATER reaches a child process the way a real harness pane would inherit it"
 test_every_live_guard_is_wired_to_the_shared_gate
