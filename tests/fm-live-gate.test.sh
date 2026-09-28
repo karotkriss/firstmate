@@ -241,6 +241,49 @@ SH
     "fm-spawn's claude launch must pass the ambient DISABLE_AUTOUPDATER through to the harness pane, so the auto-updater cannot run"
 }
 
+test_disable_autoupdater_survives_a_daemon_pane_that_never_inherited_it() {
+  # The finding: a live test exports DISABLE_AUTOUPDATER, but the pane is created
+  # by an already-running backend daemon that does not inherit the test process's
+  # environment, so ambient inheritance alone drops it and Claude's updater runs.
+  # This stages a real claude launch with DISABLE_AUTOUPDATER set in the spawn's
+  # own environment, then runs that exact command in a synthetic pane whose
+  # environment lacks the variable (standing in for the daemon). Claude must still
+  # see it, which only holds if fm-spawn embedded the assignment into the launch
+  # command text rather than relying on the pane inheriting it.
+  local case_dir home proj wt fakebin launchlog panebin panelog launch rc
+  case_dir="$TMP_ROOT/spawn-daemon-path"
+  home="$case_dir/home"; proj="$case_dir/proj"; wt="$case_dir/wt"
+  launchlog="$case_dir/launch.log"
+  fakebin=$(make_spawn_fakebin "$case_dir/fake" gh gh-axi)
+  fm_test_spawn_home "$home" claude
+  fm_git_worktree "$proj" "$wt" "wt-daemon-autoupdater"
+  fm_test_spawn_brief "$home" AU-2
+  : > "$launchlog"
+  DISABLE_AUTOUPDATER=1 FM_FAKE_LAUNCH_LOG="$launchlog" \
+    fm_test_run_spawn "$home" "$wt" "$fakebin" AU-2 "$proj" --mode no-mistakes --yolo off \
+    >/dev/null 2>&1 || fail "the claude spawn must stage its launch command"
+  launch=$(cat "$launchlog")
+  [ -n "$launch" ] || fail "no claude launch command was captured"
+
+  panebin="$case_dir/panebin"; mkdir -p "$panebin"
+  panelog="$case_dir/pane-autoupdater.log"
+  cat > "$panebin/claude" <<SH
+#!/usr/bin/env bash
+printf 'autoupdater=%s\n' "\${DISABLE_AUTOUPDATER:-unset}" > "$panelog"
+exit 0
+SH
+  chmod +x "$panebin/claude"
+  # The synthetic daemon-launched pane runs the staged command with the variable
+  # absent from its own environment; env -u strips any value the suite inherited.
+  set +e
+  env -u DISABLE_AUTOUPDATER PATH="$panebin:/usr/bin:/bin" bash -c "$launch" >/dev/null 2>&1
+  rc=$?
+  set -e
+  expect_code 0 "$rc" "the staged claude launch must run cleanly in the synthetic pane"
+  assert_contains "$(cat "$panelog")" "autoupdater=1" \
+    "fm-spawn must embed DISABLE_AUTOUPDATER in the launch command so a daemon-built pane that never inherited it still runs Claude with the updater off"
+}
+
 test_every_live_guard_is_wired_to_the_shared_gate() {
   local script out listing checked=0
   listing=$("$ROOT/bin/fm-test-run.sh" --family live-harness-optin --list) \
@@ -283,4 +326,6 @@ test_gate_exports_disable_autoupdater_for_a_proceeding_run
 pass "a proceeding live run exports DISABLE_AUTOUPDATER=1"
 test_disable_autoupdater_reaches_the_claude_pane_on_the_fm_spawn_launch_path
 pass "DISABLE_AUTOUPDATER rides fm-spawn's claude launch through to the harness pane"
+test_disable_autoupdater_survives_a_daemon_pane_that_never_inherited_it
+pass "DISABLE_AUTOUPDATER is embedded in the launch so a daemon-built pane keeps it"
 test_every_live_guard_is_wired_to_the_shared_gate
