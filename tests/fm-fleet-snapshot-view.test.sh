@@ -565,6 +565,36 @@ EOF
   pass "a blocker archived Done at the .tasks.toml [markdown] archive path resolves, and the unconfigured default archive is ignored"
 }
 
+test_quoted_archive_path_keeps_hash() {
+  local home fakebin out
+  home=$(make_home hash-archive)
+  cat > "$home/.tasks.toml" <<'EOF'
+[markdown] # tasks-axi backend
+archive = "records/task#5/done.md" # retention target
+EOF
+  cat > "$home/data/backlog.md" <<'EOF'
+## In flight
+
+## Queued
+- [ ] hash-hold - Depends on a blocker archived under a path with a hash blocked-by: hash-blocker (repo: alpha) (kind: captain) (hold: waiting on hash blocker) (hold-kind: captain)
+
+## Done
+EOF
+  mkdir -p "$home/records/task#5"
+  cat > "$home/records/task#5/done.md" <<'EOF'
+
+## Archived 2026-07-15
+- [x] hash-blocker - Blocker archived to a quoted path containing a hash (repo: alpha) (kind: ship) (done 2026-07-01)
+EOF
+  fakebin=$(make_fakebin "$home")
+  out=$(PATH="$fakebin:$PATH" FM_HOME="$home" "$SNAPSHOT" --json)
+  printf '%s' "$out" | jq -e '
+    .backlog.records[] | select(.id == "hash-hold")
+    | .unresolved_blocker_ids == [] and .hold_bucket == "live"
+  ' >/dev/null || fail "the snapshot truncated a quoted .tasks.toml archive path at its #: $out"
+  pass "a quoted .tasks.toml archive path containing # is read whole"
+}
+
 test_event_hints_follow_reconciled_current_state() {
   local home fakebin out hint_gen
   home=$(make_home event-hints)
@@ -1256,6 +1286,7 @@ test_main_inventory_orphan_and_unstructured_disclosure
 test_normalized_roles_and_plural_blocker_readiness
 test_archived_done_blocker_resolves_alongside_live_and_dangling
 test_configured_done_archive_path_resolves_blockers
+test_quoted_archive_path_keeps_hash
 test_event_hints_follow_reconciled_current_state
 test_open_decision_survives_later_unrelated_event
 test_secondmate_open_decision_survives_live_endpoint

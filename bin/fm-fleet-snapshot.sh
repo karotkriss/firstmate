@@ -143,12 +143,20 @@ done_archive_path() {
   [ -f "$root/.tasks.toml" ] && archive=$(LC_ALL=C awk '
     {
       line = $0
-      sub(/[[:space:]]*#.*/, "", line)
-      sub(/^[[:space:]]+/, "", line); sub(/[[:space:]]+$/, "", line)
-      if (line ~ /^\[[^]]+\]$/) { inmarkdown = (line == "[markdown]"); next }
-      if (inmarkdown && line ~ /^archive[[:space:]]*=/) {
-        sub(/^archive[[:space:]]*=[[:space:]]*/, "", line)
-        gsub(/^"|"$/, "", line); gsub(/^'\''|'\''$/, "", line)
+      sub(/^[[:space:]]+/, "", line)
+      if (line ~ /^\[/) {
+        sub(/[[:space:]]*#.*/, "", line); sub(/[[:space:]]+$/, "", line)
+        if (line ~ /^\[[^]]+\]$/) inmarkdown = (line == "[markdown]")
+        next
+      }
+      if (inmarkdown && sub(/^archive[[:space:]]*=[[:space:]]*/, "", line)) {
+        # A quoted value ends at its closing quote, so # inside it is kept.
+        q = substr(line, 1, 1)
+        if (q == "\"" || q == "'\''") {
+          line = substr(line, 2); line = substr(line, 1, index(line, q) - 1)
+        } else {
+          sub(/[[:space:]]*#.*/, "", line); sub(/[[:space:]]+$/, "", line)
+        }
         print line
         exit
       }
