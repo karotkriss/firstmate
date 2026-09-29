@@ -1,0 +1,99 @@
+[t+000s] === scenario=no-reply-busy-recovery bin=/tmp/fm-basebin.x59waE grace=8s lab=/tmp/fm-lab.qCP5km
+[t+000s] captain -> fm-send.sh mate 'audit the ledger' (marked request)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.qCP5km
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the requested message WILL still be sent.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[t+003s] fm-send rc=0
+[t+003s] corr=e629b1960b2d0acb
+[t+003s] mate pane: BUSY (long request turn begins)
+[t+003s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+005s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+007s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+008s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+010s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+011s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+013s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+014s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+016s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+017s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+018s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+020s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+021s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+023s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+024s] mate pane: IDLE (request turn complete, mate never replies)
+[t+024s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+028s] phase=recovery_sent delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done= reposts=1 escal=
+[t+029s] mate pane: BUSY (long recovery turn begins as the repost lands)
+[t+029s] phase=recovery_sent delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done= reposts=1 escal=
+[t+030s] phase=recovery_sent delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done= reposts=1 escal=
+[t+032s] phase=recovery_sent delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done= reposts=1 escal=
+[t+033s] phase=recovery_sent delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done= reposts=1 escal=
+[t+035s] phase=recovery_sent delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done= reposts=1 escal=
+[t+036s] phase=recovery_sent delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done= reposts=1 escal=
+[t+038s] phase=recovery_sent delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done= reposts=1 escal=
+[t+039s] phase=recovery_sent delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done= reposts=1 escal=
+[t+040s] phase=recovery_sent delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done= reposts=1 escal=
+[t+042s] phase=recovery_sent delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done= reposts=1 escal=
+[t+043s] phase=recovery_sent delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done= reposts=1 escal=
+[t+045s] phase=recovery_sent delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done= reposts=1 escal=
+[t+046s] mate pane: IDLE (recovery turn complete, still no reply)
+[t+046s] phase=recovery_sent delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done= reposts=1 escal=
+[t+047s] phase=escalated delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done=1790686947 reposts=1 escal=1
+[t+049s] phase=escalated delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done=1790686947 reposts=1 escal=1
+[t+050s] phase=escalated delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done=1790686947 reposts=1 escal=1
+[t+051s] phase=escalated delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done=1790686947 reposts=1 escal=1
+[t+052s] phase=escalated delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done=1790686947 reposts=1 escal=1
+[t+053s] phase=escalated delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done=1790686947 reposts=1 escal=1
+[t+055s] phase=escalated delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done=1790686947 reposts=1 escal=1
+[t+056s] phase=escalated delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done=1790686947 reposts=1 escal=1
+[t+057s] phase=escalated delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done=1790686947 reposts=1 escal=1
+[t+058s] phase=escalated delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done=1790686947 reposts=1 escal=1
+[t+059s] phase=escalated delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done=1790686947 reposts=1 escal=1
+[t+060s] waiting further to confirm one-repost limit
+[t+061s] phase=escalated delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done=1790686947 reposts=1 escal=1
+[t+062s] phase=escalated delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done=1790686947 reposts=1 escal=1
+[t+063s] phase=escalated delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done=1790686947 reposts=1 escal=1
+[t+064s] phase=escalated delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done=1790686947 reposts=1 escal=1
+[t+065s] phase=escalated delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done=1790686947 reposts=1 escal=1
+[t+067s] phase=escalated delivered=1790686901 req_done=1790686925 recov_sent=1790686927 recov_done=1790686947 reposts=1 escal=1
+[t+068s] --- parent status (state/mate.status):
+    blocked [key=pending-reply-e629b1960b2d0acb] [at=1790686947]: pending-reply-missed: task=mate pending-reply-id=e629b1960b2d0acb request=audit the ledger
+[t+068s] --- mate inbox messages:
+    001.msg: schema=fm-task-inbox.v1 at=2026-09-29T13:01:41Z -- [fm-from-firstmate]⁣corr=e629b1960b2d0acb audit the ledger
+
+    002.msg: schema=fm-task-inbox.v1 at=2026-09-29T13:02:06Z -- [fm-from-firstmate]⁣corr=e629b1960b2d0acb REPOST REQUIRED: previous marked request had no correlated parent report. Reply on the parent status channel including corr=e
+
+[t+068s] --- final record:
+    schema=fm-pending-reply.v1
+    corr_id=e629b1960b2d0acb
+    task_id=mate
+    parent_home=/tmp/fm-lab.qCP5km
+    parent_status=/tmp/fm-lab.qCP5km/state/mate.status
+    request_summary=audit the ledger
+    created_epoch=1790686901
+    resolved_epoch=
+    resolved_via=
+    wrong_home_hits=0
+    wrong_home_first_sighting=
+    wrong_home_sightings=
+    grace_secs=8
+    delivered_epoch=1790686901
+    wrong_home_scan_signature=4294967295-0
+    turn_seen_busy=1
+    request_turn_completed_epoch=1790686925
+    recovery_sender_pid=3571064
+    recovery_sender_identity=Tue Sep 29 09:02:05 2026 bash -c . "$1/fm-pending-reply-lib.sh"; fm_pending_reply_tick "$2" _ /tmp/fm-basebin.x59waE /tmp/fm-lab.qCP5km/state
+    recovery_attempted_epoch=1790686925
+    recovery_delivery_outcome=confirmed
+    recovery_sent_epoch=1790686927
+    recovery_turn_seen_busy=1
+    recovery_turn_completed_epoch=1790686947
+    escalated_epoch=1790686947
+    phase=escalated
+    parent_status_scan_signature=119:975178:153:1790686947:1790686947
+[t+068s] === teardown done

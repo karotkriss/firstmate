@@ -1,0 +1,71 @@
+[t+000s] === scenario=reply-after-long-turn bin=/tmp/fm-basebin.x59waE grace=8s lab=/tmp/fm-lab.xNMeqp
+[t+000s] captain -> fm-send.sh mate 'audit the ledger' (marked request)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.xNMeqp
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the requested message WILL still be sent.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[t+003s] fm-send rc=0
+[t+003s] corr=bd373d9ebaccead6
+[t+003s] mate pane: BUSY (long request turn begins)
+[t+003s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+005s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+007s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+008s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+010s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+012s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+013s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+015s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+016s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+018s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+019s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+021s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+022s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+024s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+025s] mate pane: IDLE (request turn complete)
+[t+025s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+029s] phase=recovery_sent delivered=1790686901 req_done=1790686927 recov_sent=1790686929 recov_done= reposts=1 escal=
+[t+030s] phase=recovery_sent delivered=1790686901 req_done=1790686927 recov_sent=1790686929 recov_done= reposts=1 escal=
+[t+031s] mate -> fm-secondmate-report.sh done bd373d9ebaccead6 (reply lands 3s after turn end)
+[t+032s] phase=resolved delivered=1790686901 req_done=1790686927 recov_sent=1790686929 recov_done= reposts=1 escal=0
+[t+033s] phase=resolved delivered=1790686901 req_done=1790686927 recov_sent=1790686929 recov_done= reposts=1 escal=0
+[t+034s] phase=resolved delivered=1790686901 req_done=1790686927 recov_sent=1790686929 recov_done= reposts=1 escal=0
+[t+035s] --- parent status (state/mate.status):
+    done [corr=bd373d9ebaccead6] [at=1790686931]: ledger clean (via-helper)
+[t+035s] --- mate inbox messages:
+    001.msg: schema=fm-task-inbox.v1 at=2026-09-29T13:01:41Z -- [fm-from-firstmate]⁣corr=bd373d9ebaccead6 audit the ledger
+
+    002.msg: schema=fm-task-inbox.v1 at=2026-09-29T13:02:07Z -- [fm-from-firstmate]⁣corr=bd373d9ebaccead6 REPOST REQUIRED: previous marked request had no correlated parent report. Reply on the parent status channel including corr=b
+
+[t+035s] --- final record:
+    schema=fm-pending-reply.v1
+    corr_id=bd373d9ebaccead6
+    task_id=mate
+    parent_home=/tmp/fm-lab.xNMeqp
+    parent_status=/tmp/fm-lab.xNMeqp/state/mate.status
+    request_summary=audit the ledger
+    created_epoch=1790686901
+    escalated_epoch=
+    wrong_home_hits=0
+    wrong_home_first_sighting=
+    wrong_home_sightings=
+    grace_secs=8
+    delivered_epoch=1790686901
+    parent_status_scan_signature=missing
+    wrong_home_scan_signature=4294967295-0
+    turn_seen_busy=1
+    request_turn_completed_epoch=1790686927
+    recovery_sender_pid=3573692
+    recovery_sender_identity=Tue Sep 29 09:02:06 2026 bash -c . "$1/fm-pending-reply-lib.sh"; fm_pending_reply_tick "$2" _ /tmp/fm-basebin.x59waE /tmp/fm-lab.xNMeqp/state
+    recovery_attempted_epoch=1790686927
+    recovery_delivery_outcome=confirmed
+    recovery_sent_epoch=1790686929
+    recovery_turn_seen_busy=0
+    recovery_turn_completed_epoch=
+    phase=resolved
+    resolved_epoch=1790686932
+    resolved_via=helper
+[t+035s] === teardown done

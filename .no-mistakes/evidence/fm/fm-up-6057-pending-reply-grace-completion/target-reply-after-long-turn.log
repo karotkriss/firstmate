@@ -1,0 +1,69 @@
+[t+000s] === scenario=reply-after-long-turn bin=/home/cmckay/.no-mistakes/worktrees/80aee654c94f/01M3PK6GRDWDXHDJ85DFDB3TMP/bin grace=8s lab=/tmp/fm-lab.SxTBz7
+[t+000s] captain -> fm-send.sh mate 'audit the ledger' (marked request)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.SxTBz7
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the requested message WILL still be sent.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[t+003s] fm-send rc=0
+[t+003s] corr=a6af64c38ccff717
+[t+003s] mate pane: BUSY (long request turn begins)
+[t+003s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+005s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+007s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+008s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+010s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+012s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+013s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+015s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+016s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+017s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+019s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+020s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+021s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+023s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+024s] mate pane: IDLE (request turn complete)
+[t+024s] phase=awaiting_report delivered=1790686901 req_done=1790686924 recov_sent= recov_done= reposts=0 escal=
+[t+026s] phase=awaiting_report delivered=1790686901 req_done=1790686924 recov_sent= recov_done= reposts=0 escal=
+[t+027s] phase=awaiting_report delivered=1790686901 req_done=1790686924 recov_sent= recov_done= reposts=0 escal=
+[t+028s] mate -> fm-secondmate-report.sh done a6af64c38ccff717 (reply lands 3s after turn end)
+[t+029s] phase=resolved delivered=1790686901 req_done=1790686924 recov_sent= recov_done= reposts=0 escal=0
+[t+030s] phase=resolved delivered=1790686901 req_done=1790686924 recov_sent= recov_done= reposts=0 escal=0
+[t+031s] phase=resolved delivered=1790686901 req_done=1790686924 recov_sent= recov_done= reposts=0 escal=0
+[t+032s] --- parent status (state/mate.status):
+    done [corr=a6af64c38ccff717] [at=1790686928]: ledger clean (via-helper)
+[t+032s] --- mate inbox messages:
+    001.msg: schema=fm-task-inbox.v1 at=2026-09-29T13:01:41Z -- [fm-from-firstmate]⁣corr=a6af64c38ccff717 audit the ledger
+
+[t+032s] --- final record:
+    schema=fm-pending-reply.v1
+    corr_id=a6af64c38ccff717
+    task_id=mate
+    parent_home=/tmp/fm-lab.SxTBz7
+    parent_status=/tmp/fm-lab.SxTBz7/state/mate.status
+    request_summary=audit the ledger
+    created_epoch=1790686901
+    recovery_attempted_epoch=
+    recovery_sender_pid=
+    recovery_sender_identity=
+    recovery_sent_epoch=
+    recovery_delivery_outcome=
+    recovery_turn_seen_busy=0
+    recovery_turn_completed_epoch=
+    escalated_epoch=
+    wrong_home_hits=0
+    wrong_home_first_sighting=
+    wrong_home_sightings=
+    grace_secs=8
+    delivered_epoch=1790686901
+    parent_status_scan_signature=missing
+    wrong_home_scan_signature=4294967295-0
+    turn_seen_busy=1
+    request_turn_completed_epoch=1790686924
+    phase=resolved
+    resolved_epoch=1790686928
+    resolved_via=helper
+[t+032s] === teardown done

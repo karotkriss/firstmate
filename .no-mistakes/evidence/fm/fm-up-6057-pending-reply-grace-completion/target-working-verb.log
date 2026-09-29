@@ -1,0 +1,73 @@
+[t+000s] === scenario=working-verb bin=/home/cmckay/.no-mistakes/worktrees/80aee654c94f/01M3PK6GRDWDXHDJ85DFDB3TMP/bin grace=8s lab=/tmp/fm-lab.9UXqRN
+[t+000s] captain -> fm-send.sh mate 'audit the ledger' (marked request)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.9UXqRN
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the requested message WILL still be sent.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[t+003s] fm-send rc=0
+[t+003s] corr=242ae5b2f9eb9ecd
+[t+003s] mate pane: BUSY (long request turn begins)
+[t+003s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+005s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+007s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+008s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+010s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+012s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+013s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+015s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+016s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+018s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+019s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+021s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+022s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+024s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+025s] mate pane: IDLE (request turn complete)
+[t+025s] phase=awaiting_report delivered=1790686901 req_done= recov_sent= recov_done= reposts=0 escal=
+[t+027s] phase=awaiting_report delivered=1790686901 req_done=1790686927 recov_sent= recov_done= reposts=0 escal=
+[t+028s] phase=awaiting_report delivered=1790686901 req_done=1790686927 recov_sent= recov_done= reposts=0 escal=
+[t+030s] phase=awaiting_report delivered=1790686901 req_done=1790686927 recov_sent= recov_done= reposts=0 escal=
+[t+031s] phase=awaiting_report delivered=1790686901 req_done=1790686927 recov_sent= recov_done= reposts=0 escal=
+[t+032s] mate -> plain echo 'working [corr=242ae5b2f9eb9ecd]: still wrapping up' into parent status
+[t+033s] phase=resolved delivered=1790686901 req_done=1790686927 recov_sent= recov_done= reposts=0 escal=0
+[t+034s] phase=resolved delivered=1790686901 req_done=1790686927 recov_sent= recov_done= reposts=0 escal=0
+[t+035s] phase=resolved delivered=1790686901 req_done=1790686927 recov_sent= recov_done= reposts=0 escal=0
+[t+036s] phase=resolved delivered=1790686901 req_done=1790686927 recov_sent= recov_done= reposts=0 escal=0
+[t+037s] phase=resolved delivered=1790686901 req_done=1790686927 recov_sent= recov_done= reposts=0 escal=0
+[t+038s] --- parent status (state/mate.status):
+    working [corr=242ae5b2f9eb9ecd]: still wrapping up
+[t+038s] --- mate inbox messages:
+    001.msg: schema=fm-task-inbox.v1 at=2026-09-29T13:01:41Z -- [fm-from-firstmate]⁣corr=242ae5b2f9eb9ecd audit the ledger
+
+[t+038s] --- final record:
+    schema=fm-pending-reply.v1
+    corr_id=242ae5b2f9eb9ecd
+    task_id=mate
+    parent_home=/tmp/fm-lab.9UXqRN
+    parent_status=/tmp/fm-lab.9UXqRN/state/mate.status
+    request_summary=audit the ledger
+    created_epoch=1790686901
+    recovery_attempted_epoch=
+    recovery_sender_pid=
+    recovery_sender_identity=
+    recovery_sent_epoch=
+    recovery_delivery_outcome=
+    recovery_turn_seen_busy=0
+    recovery_turn_completed_epoch=
+    escalated_epoch=
+    wrong_home_hits=0
+    wrong_home_first_sighting=
+    wrong_home_sightings=
+    grace_secs=8
+    delivered_epoch=1790686901
+    parent_status_scan_signature=missing
+    wrong_home_scan_signature=4294967295-0
+    turn_seen_busy=1
+    request_turn_completed_epoch=1790686927
+    phase=resolved
+    resolved_epoch=1790686933
+    resolved_via=status
+[t+038s] === teardown done
