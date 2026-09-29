@@ -317,6 +317,54 @@ test_recovery_fresh_status_read_resolves_before_firing() {
   pass "one fresh status read immediately before firing catches a just-landed reply, any verb"
 }
 
+test_partial_resolve_write_blocks_firing() {
+  local home state status hook_log
+  home=$(setup_parent partial-resolve-write)
+  state="$home/state"
+  status="$state/hibit.status"
+  hook_log="$TMP_ROOT/partial-resolve-write.log"
+  : > "$hook_log"
+  # A resolve that commits phase=resolved and then fails a later field write
+  # must still stop the repost and the escalation. Run in a subshell so the
+  # injected write failure cannot leak into later tests.
+  (
+    # Invoked indirectly through FM_PENDING_REPLY_SEND_HOOK.
+    # shellcheck disable=SC2329
+    recovery_hook() { printf '%s\n' sent >> "$hook_log"; }
+    eval "_orig_$(declare -f fm_pending_reply_set)"
+    fm_pending_reply_set() {
+      [ "$2" != resolved_epoch ] || [ "${FAIL_RESOLVED_EPOCH:-0}" != 1 ] || return 1
+      _orig_fm_pending_reply_set "$@"
+    }
+
+    corr=$(fm_pending_reply_create "$home" "$state" "hibit" "partial resolve before recovery")
+    fm_pending_reply_mark_delivered "$state" "$corr"
+    fm_pending_reply_mark_turn_completed "$state" "$corr" request
+    printf 'working [corr=%s]: still wrapping up\n' "$corr" >> "$status"
+    if FAIL_RESOLVED_EPOCH=1 FM_PENDING_REPLY_SEND_HOOK=recovery_hook fm_pending_reply_send_recovery "$state" "$corr" 2>/dev/null; then
+      fail "recovery must not fire after a partial resolve"
+    fi
+    [ "$(phase_of "$state" "$corr")" = resolved ] \
+      || fail "partial resolve should leave phase resolved, got $(phase_of "$state" "$corr")"
+    [ ! -s "$hook_log" ] || fail "recovery was sent after a partial resolve"
+
+    corr=$(fm_pending_reply_create "$home" "$state" "hibit" "partial resolve before escalation")
+    fm_pending_reply_mark_delivered "$state" "$corr"
+    fm_pending_reply_mark_turn_completed "$state" "$corr" request
+    FM_PENDING_REPLY_SEND_HOOK=true fm_pending_reply_send_recovery "$state" "$corr" \
+      || fail "setup: recovery send failed"
+    fm_pending_reply_mark_turn_completed "$state" "$corr" recovery
+    printf 'working [corr=%s]: still wrapping up\n' "$corr" >> "$status"
+    FAIL_RESOLVED_EPOCH=1 fm_pending_reply_maybe_escalate "$state" "$corr" 2>/dev/null || true
+    [ "$(phase_of "$state" "$corr")" = resolved ] \
+      || fail "partial resolve should block escalation, got $(phase_of "$state" "$corr")"
+    if grep -qF "blocked [key=pending-reply-$corr]" "$status"; then
+      fail "escalation must not publish after a partial resolve"
+    fi
+  ) || exit 1
+  pass "a resolve that fails after committing resolved still blocks repost and escalation"
+}
+
 test_escalation_grace_measures_from_recovery_turn_completion() {
   local home state corr hook_log status_line escalations
   home=$(setup_parent escalation-grace-from-completion)
@@ -1881,6 +1929,7 @@ test_normal_correlated_reply_resolves_once
 test_completed_turn_no_report_triggers_one_recovery
 test_recovery_grace_measures_from_turn_completion
 test_recovery_fresh_status_read_resolves_before_firing
+test_partial_resolve_write_blocks_firing
 test_escalation_grace_measures_from_recovery_turn_completion
 test_recovery_attempt_is_never_reinjected
 test_recovery_reply_resolves_original

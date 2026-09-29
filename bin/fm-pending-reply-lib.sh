@@ -978,9 +978,11 @@ fm_pending_reply_send_recovery() {  # <state-dir> <corr_id>
   # fm_pending_reply_try_resolve site; each directed site would re-expand its
   # whole transitive graph under ShellCheck's external-source traversal.
   . "$_FM_PENDING_REPLY_LIB_DIR/fm-wake-lib.sh"
+  # The phase is re-read after the resolve attempt, whatever it returned: a
+  # resolve that failed on a later field write has still committed resolved.
   fm_lock_acquire_wait "$lock" || return 1
-  if [ "$(fm_pending_reply_get "$rec" phase)" != awaiting_report ] \
-    || _fm_pending_reply_try_resolve_locked "$state" "$corr" "$status_file" \
+  if _fm_pending_reply_try_resolve_locked "$state" "$corr" "$status_file" \
+    || [ "$(fm_pending_reply_get "$rec" phase)" != awaiting_report ] \
     || ! fm_pending_reply_set "$rec" recovery_sender_pid "$sender_pid" \
     || ! fm_pending_reply_set "$rec" recovery_sender_identity "$sender_identity" \
     || ! fm_pending_reply_set "$rec" recovery_attempted_epoch "$now" \
@@ -1293,6 +1295,8 @@ _fm_pending_reply_maybe_escalate_locked() {  # <state-dir> <corr_id>
   if _fm_pending_reply_try_resolve_locked "$state" "$corr" "$parent_status"; then
     return 0
   fi
+  # A resolve that failed on a later field write has still committed resolved.
+  [ "$(fm_pending_reply_get "$rec" phase)" = "$phase" ] || return 1
   case "$phase" in
     delivery_unknown) kind=delivery-unknown ;;
     recovery_failed|recovery_unknown) kind='recovery-delivery' ;;
