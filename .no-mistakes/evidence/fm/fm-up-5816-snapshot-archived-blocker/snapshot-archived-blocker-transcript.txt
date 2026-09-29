@@ -1,0 +1,32 @@
+# Lab: disposable FM_HOME, backlog driven by real tasks-axi (.tasks.toml done_keep=10 archive=data/done-archive.md)
+# blocker-a done then 10 more Done tasks -> tasks-axi retention archived blocker-a
+
+## Snapshot BEFORE fix (c5f48e4) - held-archived still blocked
+{"id":"held-archived","unresolved_blocker_ids":["blocker-a"],"hold_bucket":"blocked","captain_actionable":false}
+{"id":"held-dangling","unresolved_blocker_ids":["ghost"],"hold_bucket":"blocked","captain_actionable":false}
+{"id":"held-live","unresolved_blocker_ids":[],"hold_bucket":"live","captain_actionable":true}
+
+## Snapshot AFTER fix (a36fd40) - held-archived resolved; dangling 'ghost' still blocked
+{"id":"held-archived","unresolved_blocker_ids":[],"hold_bucket":"live","captain_actionable":true}
+{"id":"held-dangling","unresolved_blocker_ids":["ghost"],"hold_bucket":"blocked","captain_actionable":false}
+{"id":"held-live","unresolved_blocker_ids":[],"hold_bucket":"live","captain_actionable":true}
+
+## Adversarial: blocker-a re-filed as a queued task (tasks-axi: blocked yes) -> snapshot keeps it unresolved
+{"id":"held-archived","blocked_by_ids":["blocker-a"],"unresolved_blocker_ids":["blocker-a"],"hold_bucket":"blocked","captain_actionable":false}
+{"id":"held-dangling","blocked_by_ids":["ghost"],"unresolved_blocker_ids":["ghost"],"hold_bucket":"blocked","captain_actionable":false}
+{"id":"held-live","blocked_by_ids":["blocker-live"],"unresolved_blocker_ids":[],"hold_bucket":"live","captain_actionable":true}
+{"id":"held-pruned","blocked_by_ids":["pruned-blk"],"unresolved_blocker_ids":["pruned-blk"],"hold_bucket":"blocked","captain_actionable":false}
+
+## Adversarial: tasks-axi prune --state queued archived unfinished pruned-blk as '- [ ]' -> stays unresolved
+{"id":"held-archived","unresolved_blocker_ids":[],"hold_bucket":"live","captain_actionable":true}
+{"id":"held-dangling","unresolved_blocker_ids":["ghost"],"hold_bucket":"blocked","captain_actionable":false}
+{"id":"held-live","unresolved_blocker_ids":[],"hold_bucket":"live","captain_actionable":true}
+{"id":"held-pruned","unresolved_blocker_ids":["pruned-blk"],"hold_bucket":"blocked","captain_actionable":false}
+
+## done-archive.md at end
+
+## Archived 2026-09-29
+- [x] blocker-a - Blocker that finishes and gets archived (kind: ship) (done 2026-09-29)
+
+## Archived 2026-09-29
+- [ ] pruned-blk - Blocker pruned unfinished (kind: ship) (since 2026-09-29)

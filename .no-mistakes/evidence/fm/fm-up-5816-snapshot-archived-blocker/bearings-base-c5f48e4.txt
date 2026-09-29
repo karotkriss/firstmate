@@ -1,0 +1,48 @@
+schema: fm-bearings.v1
+home: tmp/fm-lab.y5RbCD
+generated: "2026-09-29T12:45:56Z"
+prs: "not_requested (run: /bearings include PRs)"
+contributions: 
+  scope: owned contributions per home
+  known: 0
+  checked: 0
+  counts: 
+    captain: 0
+    fleet: 0
+    maintainer: 0
+    nobody: 0
+  complete: true
+  proven_clear: true
+  unmeasured_homes: 0
+  unreadable_records: 0
+  unmeasured: 0
+  stale_verdicts: 0
+  missing_verdicts: 0
+  captain_omitted: 0
+  captain: []
+in_flight: []
+secondmates: []
+secondmate_reconcile: []
+decisions_open[1]{id,key,verb,summary,owner}:
+  held-live,held-live,captain-hold,"Captain hold waiting on live Done blocker: captain decision pending",(main)
+landed[6]{id,what,artifact,owner}:
+  filler-9,Filler task 9,"-",(main)
+  filler-8,Filler task 8,"-",(main)
+  filler-7,Filler task 7,"-",(main)
+  filler-6,Filler task 6,"-",(main)
+  filler-5,Filler task 5,"-",(main)
+  filler-4,Filler task 4,"-",(main)
+gates[2]{id,title,blocked_by,reason,owner,filed}:
+  held-archived,Captain hold waiting on archived blocker,blocker-a,"blocked-by blocker-a: captain decision p…",(main),2026-09-29
+  held-dangling,Captain hold waiting on phantom,ghost,"blocked-by ghost: captain decision pendi…",(main),2026-09-29
+reports: []
+recorded_prs: []
+omitted[8]{surface,reveal}:
+  backlog item bodies,"--fields bodies"
+  task paths,"--fields paths"
+  watch/steer actions,"--fields actions"
+  healthy endpoint detail,"--fields endpoints"
+  full scout-report inventory,"--all-reports"
+  landed per-home capped at 6 for 1 home(s),"--all-landed"
+  "captain holds bucketed blocked, dated, or aged: 2","--all-decisions"
+  live PR discovery + checks,"--include-prs"
