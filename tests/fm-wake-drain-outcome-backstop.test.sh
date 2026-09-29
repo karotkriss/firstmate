@@ -356,14 +356,20 @@ test_uncovered_event_surfaces_on_first_drain_without_index() {
 }
 
 test_legacy_endpoint_key_does_not_abort_index_rebuild() {
-  local dir state out body
+  local dir state out body old
   dir=$(make_case legacy-endpoint-key)
   state="$dir/state"
   out="$dir/drain.out"
 
   printf 'done: uncovered completion with no index\n' > "$state/fresh.status"
-  printf '%s\n' '{"seq":1,"epoch":1,"task":"default:w0:p2","wake":"","verdict":"captain","summary":"legacy endpoint-keyed outcome"}' \
-    > "$state/branch-outcomes.jsonl"
+  printf 'done: handled before cache interruption\n' > "$state/recovered.status"
+  old=$(( $(date +%s) - 20 ))
+  set_mtime "$old" "$state/recovered.status"
+  {
+    printf '%s\n' '{"seq":1,"epoch":1,"task":"default:w0:p2","wake":"","verdict":"captain","summary":"legacy endpoint-keyed outcome"}'
+    printf '%s\n' '{"seq":2,"epoch":'"$((old + 10))"',"task":"recovered","wake":"","verdict":"captain","summary":"handled outcome"}'
+  } > "$state/branch-outcomes.jsonl"
+  printf '2\n' > "$state/.branch-outcomes-cursor"
 
   FM_STATE_OVERRIDE="$state" "$DRAIN" > "$out" \
     || fail "drain failed with a legacy endpoint-shaped outcome key"
@@ -375,9 +381,13 @@ test_legacy_endpoint_key_does_not_abort_index_rebuild() {
     fail "missed-status recovery did not run past a legacy key: $body"
     ;;
   esac
+  case "$body" in *'recovered done:'*)
+    fail "a legacy key stopped the rebuild before a valid task's index: $body"
+    ;;
+  esac
   [ -f "$state/.branch-outcome-index-ready" ] \
     || fail "rebuild did not publish the outcome-index ready marker"
-  pass "a legacy endpoint-shaped outcome key is skipped and recovery still runs"
+  pass "a legacy endpoint-shaped outcome key is skipped, valid tasks stay indexed, and recovery still runs"
 }
 
 test_malformed_outcome_store_fails_closed_without_pi_advice() {
