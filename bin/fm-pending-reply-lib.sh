@@ -64,7 +64,10 @@
 #   wrong_home_first_sighting= encoded path:line identity of the first sighting
 #   wrong_home_sightings=   comma-separated encoded path:line identities
 #   wrong_home_scan_signature=
-#   grace_secs=             bounded grace before recovery is eligible
+#   grace_secs=             bounded grace before recovery, and before the
+#                           missed-report escalation, are eligible - measured
+#                           from the relevant turn's completion (request or
+#                           recovery), never from delivery or send time
 #
 # Escalation lifecycle: an escalation is not just a message, it OPENS a durable
 # keyed decision in the parent status log, and bin/fm-classify-lib.sh's fold is
@@ -99,7 +102,10 @@
 # tests. No side effects on source. set -u / set -e safe.
 #
 # Tunables (env):
-#   FM_PENDING_REPLY_GRACE_SECS   default 120
+#   FM_PENDING_REPLY_GRACE_SECS   default 120; counted from the request turn's
+#                                 completion for the recovery repost, and from
+#                                 the recovery turn's completion for the
+#                                 missed-report escalation - never from delivery
 #   FM_PENDING_REPLY_DIR_OVERRIDE override the pending-replies directory (tests)
 #   FM_PENDING_REPLY_SEND_HOOK    optional command template for recovery delivery
 #                                 (tests); receives task_id and full message as args
@@ -931,7 +937,7 @@ fm_pending_reply_recovery_message() {  # <record-path>
 fm_pending_reply_send_recovery() {  # <state-dir> <corr_id>
   local state=$1 corr=$2
   local rec phase completed delivered attempted grace now age task_id msg parent_home send_status=0
-  local sender_pid sender_identity
+  local sender_pid sender_identity status_file
   rec=$(fm_pending_reply_path "$state" "$corr")
   [ -f "$rec" ] || return 1
   phase=$(fm_pending_reply_get "$rec" phase)
@@ -948,11 +954,18 @@ fm_pending_reply_send_recovery() {  # <state-dir> <corr_id>
   grace=$(fm_pending_reply_get "$rec" grace_secs)
   case "$grace" in ''|*[!0-9]*) grace=$(fm_pending_reply_grace_secs) ;; esac
   now=$(fm_pending_reply_now)
-  age=$((now - delivered))
+  # Grace runs from the request turn's completion, not from delivery: delivery
+  # only proves the request arrived, while the turn's completion is the
+  # earliest moment a correlated report could exist to race against.
+  age=$((now - completed))
   [ "$age" -ge "$grace" ] || return 1
   task_id=$(fm_pending_reply_get "$rec" task_id)
   # A remote mate's report may exist and simply not have been mirrored yet.
   fm_pending_reply_missing_report_is_evidence "$state" "$task_id" "$completed" || return 1
+  # One fresh, uncached read immediately before firing: a correlated report can
+  # land in the instant between the last resolve attempt and this point.
+  status_file=$(fm_pending_reply_get "$rec" parent_status)
+  fm_pending_reply_try_resolve "$state" "$corr" "$status_file" && return 1
   parent_home=$(fm_pending_reply_get "$rec" parent_home)
   msg=$(fm_pending_reply_recovery_message "$rec")
   sender_pid=${BASHPID:-$$}
@@ -1220,7 +1233,7 @@ fm_pending_reply_maybe_escalate() {  # <state-dir> <corr_id>
 _fm_pending_reply_maybe_escalate_locked() {  # <state-dir> <corr_id>
   local state=$1 corr=$2
   local rec phase completed now payload parent_status line kind first display
-  local delivered task_id meta sm_home remote_host
+  local delivered task_id meta sm_home remote_host grace age
   rec=$(fm_pending_reply_path "$state" "$corr")
   [ -f "$rec" ] || return 1
   phase=$(fm_pending_reply_get "$rec" phase)
@@ -1233,6 +1246,13 @@ _fm_pending_reply_maybe_escalate_locked() {  # <state-dir> <corr_id>
     recovery_sent)
       completed=$(fm_pending_reply_get "$rec" recovery_turn_completed_epoch)
       [ -n "$completed" ] || return 1
+      # Grace runs from the recovery turn's completion, the same anchor the
+      # recovery repost itself uses (never from delivery or send time).
+      grace=$(fm_pending_reply_get "$rec" grace_secs)
+      case "$grace" in ''|*[!0-9]*) grace=$(fm_pending_reply_grace_secs) ;; esac
+      now=$(fm_pending_reply_now)
+      age=$((now - completed))
+      [ "$age" -ge "$grace" ] || return 1
       # Same reply-channel evidence rule the recovery repost obeys: a missing
       # correlated report is not a missed report until the mirror caught up.
       fm_pending_reply_missing_report_is_evidence "$state" \
@@ -1252,11 +1272,12 @@ _fm_pending_reply_maybe_escalate_locked() {  # <state-dir> <corr_id>
       fm_pending_reply_restatement_copy_same_basename "$state" "$corr" "$sm_home" || true
     fi
   fi
-  # Resolve wins if a late report arrived between completion and this call.
-  if _fm_pending_reply_try_resolve_locked "$state" "$corr"; then
+  parent_status=$(fm_pending_reply_get "$rec" parent_status)
+  # One fresh, uncached read immediately before firing: a correlated report can
+  # land in the instant between the last resolve attempt and this call.
+  if _fm_pending_reply_try_resolve_locked "$state" "$corr" "$parent_status"; then
     return 0
   fi
-  parent_status=$(fm_pending_reply_get "$rec" parent_status)
   case "$phase" in
     delivery_unknown) kind=delivery-unknown ;;
     recovery_failed|recovery_unknown) kind='recovery-delivery' ;;
