@@ -185,6 +185,7 @@ So a truncated digest does neither of these:
 
 A fresh clone has no gitignored state directory yet.
 When the root otherwise qualifies as primary, the run wrapper creates the state directory before the unchanged scope check, so the first session takes the helm without a manual `mkdir state`.
+If that creation fails, the run wrapper prints one stderr line naming the state directory and the reason, then stands down as it would for any ineligible root.
 The nudge wrapper and every other hook still stand down while the state directory is missing.
 
 The Guard Predicates section of [`turnend-guard.md`](turnend-guard.md#guard-predicates) owns marker validation, plain-checkout detection, and required Firstmate-shaped paths.
@@ -392,6 +393,7 @@ It also proves the nudge wrapper's exact U+2063 `FIRSTMATE_OP:`-prefixed, `sessi
 
 It separately proves the run wrapper's silence for the gate environment and an unmarked linked worktree, including the internal Pi prerequisite's explicit silent stand-down.
 It proves the run wrapper creates a missing state directory on a fresh primary and delivers the full digest, while an unmarked linked worktree gets none.
+It proves a fresh primary whose state directory cannot be created reports that on one stderr line and stands down without a digest.
 
 It proves the run wrapper's source routing end to end against a real `fm-session-start.sh`, including:
 
