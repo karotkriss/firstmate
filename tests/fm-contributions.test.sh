@@ -772,13 +772,15 @@ test_interrupted_multi_owner_poll_settles_every_owner() {
   forge_home "$home"
   wrap_forge "$home"
   record "$home" duplicate 8 open mergeable
-  mutate_record "$home" duplicate '.records[0].pending=[{token:"evt-1"}] | .records[0].notified=["evt-0"]'
+  mutate_record "$home" duplicate '.records[0].pending=[{token:"evt-1"}] | .records[0].notified=["evt-0"]
+    | .records[0].checked_at="2026-09-15T08:00:00Z"'
   mutate_record "$home" delivery '.records[0].observation.state="merged"'
   printf 'down\n' > "$home/forge/fault"
   with_home "$home" env FM_CONTRIBUTIONS_NOW="$later" "$ROOT/bin/fm-contributions.sh" poll >/dev/null \
     || fail 'interrupted multi-owner poll failed'
   [ ! -s "$home/forge/calls" ] || fail 'a known terminal URL triggered a forge read'
-  jq -e '.records[0] | .observation.state == "merged" and .error == null
+  jq -e --slurpfile terminal "$home/data/delivery/contributions.json" '.records[0] | .observation.state == "merged"
+    and .error == null and .checked_at == $terminal[0].records[0].checked_at
     and .pending == [{token:"evt-1"}] and .notified == ["evt-0"]' \
     "$home/data/duplicate/contributions.json" >/dev/null \
     || fail "an owner whose saved row stayed open did not converge on the known terminal observation: $(cat "$home/data/duplicate/contributions.json")"
