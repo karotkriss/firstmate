@@ -519,6 +519,52 @@ EOF
   pass "a blocker recorded Done in the archive resolves like one still Done in the backlog, while an archived unfinished or truly dangling blocker stays open"
 }
 
+test_configured_done_archive_path_resolves_blockers() {
+  local home fakebin out
+  home=$(make_home configured-archive)
+  cat > "$home/.tasks.toml" <<'EOF'
+backend = "markdown"
+
+[markdown]
+path = "data/backlog.md"
+archive = "records/done.md" # retention target
+done_keep = 10
+EOF
+  cat > "$home/data/backlog.md" <<'EOF'
+## In flight
+
+## Queued
+- [ ] configured-hold - Depends on a blocker in the configured archive blocked-by: configured-blocker (repo: alpha) (kind: captain) (hold: waiting on configured blocker) (hold-kind: captain)
+- [ ] default-hold - Depends on a blocker only in the unconfigured default archive blocked-by: default-blocker (repo: alpha) (kind: captain) (hold: waiting on default blocker) (hold-kind: captain)
+
+## Done
+EOF
+  mkdir -p "$home/records"
+  cat > "$home/records/done.md" <<'EOF'
+
+## Archived 2026-07-15
+- [x] configured-blocker - Blocker archived to the configured path (repo: alpha) (kind: ship) (done 2026-07-01)
+EOF
+  cat > "$home/data/done-archive.md" <<'EOF'
+
+## Archived 2026-07-15
+- [x] default-blocker - Blocker in a default archive this home does not use (repo: alpha) (kind: ship) (done 2026-07-01)
+EOF
+  fakebin=$(make_fakebin "$home")
+  out=$(PATH="$fakebin:$PATH" FM_HOME="$home" "$SNAPSHOT" --json)
+  printf '%s' "$out" | jq -e '
+    (.backlog.records[] | select(.id == "configured-hold")) as $configured
+    | (.backlog.records[] | select(.id == "default-hold")) as $default
+    | $configured.unresolved_blocker_ids == []
+      and $configured.hold_bucket == "live"
+      and $configured.captain_actionable == true
+      and $default.unresolved_blocker_ids == ["default-blocker"]
+      and $default.hold_bucket == "blocked"
+      and $default.captain_actionable == false
+  ' >/dev/null || fail "the snapshot did not resolve blockers from the .tasks.toml archive path alone: $out"
+  pass "a blocker archived Done at the .tasks.toml [markdown] archive path resolves, and the unconfigured default archive is ignored"
+}
+
 test_event_hints_follow_reconciled_current_state() {
   local home fakebin out hint_gen
   home=$(make_home event-hints)
@@ -1209,6 +1255,7 @@ test_hold_buckets_are_total_and_text_blind
 test_main_inventory_orphan_and_unstructured_disclosure
 test_normalized_roles_and_plural_blocker_readiness
 test_archived_done_blocker_resolves_alongside_live_and_dangling
+test_configured_done_archive_path_resolves_blockers
 test_event_hints_follow_reconciled_current_state
 test_open_decision_survives_later_unrelated_event
 test_secondmate_open_decision_survives_live_endpoint
