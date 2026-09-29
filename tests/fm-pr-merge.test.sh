@@ -179,7 +179,11 @@ case "${1:-} ${2:-}" in
           printf '%s\n' "$call_n" > "$FM_TEST_GH_MERGEABLE_CALLS"
           call_m=$(sed -n "${call_n}p" "$FM_TEST_GH_MERGEABLE_SEQUENCE")
           [ -n "$call_m" ] || call_m=$(tail -n1 "$FM_TEST_GH_MERGEABLE_SEQUENCE")
-          jq -c --arg m "$call_m" '.mergeable = $m' "$FM_TEST_GH_VIEW_JSON"
+          # An optional second word overrides the first check's conclusion.
+          read -r call_m call_c <<< "$call_m"
+          jq -c --arg m "$call_m" --arg c "${call_c:-}" \
+            '.mergeable = $m | if $c != "" then .statusCheckRollup[0].conclusion = $c else . end' \
+            "$FM_TEST_GH_VIEW_JSON"
         else
           cat "$FM_TEST_GH_VIEW_JSON"
         fi
@@ -705,6 +709,38 @@ test_github_mergeable_unknown_exhausts_bound_and_reports_pending() {
     "$case_dir/stderr" \
     "github-mergeable-unknown-exhausted: the exhausted retry did not report mergeability as still pending"
   pass "fm-pr-merge reports mergeability still pending after its bounded UNKNOWN retry is spent"
+}
+
+# A check that turns red between two UNKNOWN reads must refuse on the re-check:
+# the retry re-reads every live condition, not only mergeable.
+test_github_mergeable_unknown_retry_rechecks_checks() {
+  local case_dir rc head
+  head=4545454545454545454545454545454545454545
+  case_dir=$(make_case github-mergeable-unknown-check-turns-red)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" "$head"
+  printf '%s\n' UNKNOWN 'UNKNOWN FAILURE' > "$case_dir/mergeable-sequence"
+  : > "$case_dir/gh-axi.log"
+  : > "$case_dir/gh.log"
+
+  set +e
+  FM_TEST_GH_MERGEABLE_SEQUENCE="$case_dir/mergeable-sequence" \
+  FM_PR_GITHUB_MERGEABLE_RETRY_DELAY=0 \
+    run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/86 \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 1 "$rc" "github-mergeable-unknown-check-turns-red: a check that turned red must refuse"
+  [ "$(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log")" -eq 2 ] \
+    || fail "github-mergeable-unknown-check-turns-red: expected exactly 2 reads, got $(grep -c '^pr view .*statusCheckRollup' "$case_dir/gh.log")"
+  assert_grep "check 'ci' is not green" "$case_dir/stderr" \
+    "github-mergeable-unknown-check-turns-red: the re-check did not refuse the red check"
+  assert_no_grep 'still being computed' "$case_dir/stderr" \
+    "github-mergeable-unknown-check-turns-red: a red check was reported as mergeability pending"
+  assert_no_grep 'pr merge' "$case_dir/gh.log" \
+    "github-mergeable-unknown-check-turns-red: gh pr merge ran after a check turned red"
+  pass "fm-pr-merge refuses on the UNKNOWN re-check when a check turned red between reads"
 }
 
 # A real conflict (mergeable=CONFLICTING) is a different condition from GitHub
@@ -2332,6 +2368,7 @@ test_merge_failure_propagates_after_recording
 test_github_open_unqueued_outcome_refuses
 test_github_mergeable_unknown_retries_then_succeeds
 test_github_mergeable_unknown_exhausts_bound_and_reports_pending
+test_github_mergeable_unknown_retry_rechecks_checks
 test_github_mergeable_conflicting_is_not_retried
 test_github_unreadable_outcome_keeps_pr_bookkeeping
 test_github_refusal_quotes_the_forge_output
