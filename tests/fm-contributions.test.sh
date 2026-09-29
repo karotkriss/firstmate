@@ -774,12 +774,13 @@ test_interrupted_multi_owner_poll_settles_every_owner() {
   record "$home" duplicate 8 open mergeable
   mutate_record "$home" duplicate '.records[0].pending=[{token:"evt-1"}] | .records[0].notified=["evt-0"]
     | .records[0].checked_at="2026-09-15T08:00:00Z"'
-  mutate_record "$home" delivery '.records[0].observation.state="merged"'
+  mutate_record "$home" delivery ".records[0].observation.state=\"merged\" | .records[0].observation.head=\"$HEAD_B\""
   printf 'down\n' > "$home/forge/fault"
   with_home "$home" env FM_CONTRIBUTIONS_NOW="$later" "$ROOT/bin/fm-contributions.sh" poll >/dev/null \
     || fail 'interrupted multi-owner poll failed'
   [ ! -s "$home/forge/calls" ] || fail 'a known terminal URL triggered a forge read'
   jq -e --slurpfile terminal "$home/data/delivery/contributions.json" '.records[0] | .observation.state == "merged"
+    and .observation == $terminal[0].records[0].observation
     and .error == null and .checked_at == $terminal[0].records[0].checked_at
     and .pending == [{token:"evt-1"}] and .notified == ["evt-0"]' \
     "$home/data/duplicate/contributions.json" >/dev/null \
@@ -790,12 +791,13 @@ test_interrupted_multi_owner_poll_settles_every_owner() {
   wrap_forge "$home"
   record "$home" duplicate 8 open mergeable
   mutate_record "$home" duplicate '.records[0].error="forge observation unavailable or changed during read"'
-  mutate_record "$home" delivery '.records[0].observation.state="merged"'
+  mutate_record "$home" delivery ".records[0].observation.state=\"merged\" | .records[0].observation.head=\"$HEAD_B\""
   printf 'down\n' > "$home/forge/fault"
   with_home "$home" env FM_CONTRIBUTIONS_NOW="$later" "$ROOT/bin/fm-contributions.sh" poll >/dev/null \
     || fail 'interrupted multi-owner poll (errored owner) failed'
   [ ! -s "$home/forge/calls" ] || fail 'a known terminal URL triggered a forge read (errored owner)'
-  jq -e '.records[0].observation.state == "merged" and .records[0].error == null' \
+  jq -e --slurpfile terminal "$home/data/delivery/contributions.json" '.records[0] | .observation.state == "merged"
+    and .observation == $terminal[0].records[0].observation and .error == null' \
     "$home/data/duplicate/contributions.json" >/dev/null \
     || fail "an errored owner did not converge on the known terminal observation: $(cat "$home/data/duplicate/contributions.json")"
   pass 'a retry converges every owner whose saved row is not terminal, keeping its own acknowledgement state'
