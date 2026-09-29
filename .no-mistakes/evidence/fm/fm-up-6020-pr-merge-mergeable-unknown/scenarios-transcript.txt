@@ -1,0 +1,192 @@
+=== baseline-mergeable
+mergeable sequence: MERGEABLE  retry delay: 0
+exit=0  mergeable reads=1  merge calls=1  elapsed=1.7s
+--- stderr:
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ●  WATCHER DOWN - SUPERVISION IS OFF
+  ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  ●  This is a supervision warning only; the guarded operation WILL still run.
+  ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  verified: https://github.com/example/repo/pull/6020 is open and mergeable, with every unwaived required check reported and every unwaived check green at head 6020602060206020602060206020602060206020
+
+=== unknown-twice-then-mergeable
+mergeable sequence: UNKNOWN UNKNOWN MERGEABLE  retry delay: 0
+exit=0  mergeable reads=3  merge calls=1  elapsed=1.8s
+--- stderr:
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ●  WATCHER DOWN - SUPERVISION IS OFF
+  ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  ●  This is a supervision warning only; the guarded operation WILL still run.
+  ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  verified: https://github.com/example/repo/pull/6020 is open and mergeable, with every unwaived required check reported and every unwaived check green at head 6020602060206020602060206020602060206020
+
+=== unknown-four-then-mergeable-on-5th
+mergeable sequence: UNKNOWN UNKNOWN UNKNOWN UNKNOWN MERGEABLE  retry delay: 0
+exit=0  mergeable reads=5  merge calls=1  elapsed=1.9s
+--- stderr:
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ●  WATCHER DOWN - SUPERVISION IS OFF
+  ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  ●  This is a supervision warning only; the guarded operation WILL still run.
+  ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  verified: https://github.com/example/repo/pull/6020 is open and mergeable, with every unwaived required check reported and every unwaived check green at head 6020602060206020602060206020602060206020
+
+=== unknown-forever
+mergeable sequence: UNKNOWN  retry delay: 0
+exit=1  mergeable reads=5  merge calls=0  elapsed=1.7s
+--- stderr:
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ●  WATCHER DOWN - SUPERVISION IS OFF
+  ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  ●  This is a supervision warning only; the guarded operation WILL still run.
+  ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  error: mergeability for https://github.com/example/repo/pull/6020 is still being computed by GitHub; retry shortly
+
+=== unknown-then-check-turns-red
+mergeable sequence: UNKNOWN MERGEABLE  retry delay: 0
+exit=1  mergeable reads=2  merge calls=0  elapsed=1.6s
+--- stderr:
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ●  WATCHER DOWN - SUPERVISION IS OFF
+  ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  ●  This is a supervision warning only; the guarded operation WILL still run.
+  ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  error: refusing to merge https://github.com/example/repo/pull/6020
+    - check 'ci' is not green
+  error: these checks are not green: ci
+
+=== unknown-then-stays-unknown-check-turns-red
+mergeable sequence: UNKNOWN UNKNOWN  retry delay: 0
+exit=1  mergeable reads=2  merge calls=0  elapsed=1.6s
+--- stderr:
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ●  WATCHER DOWN - SUPERVISION IS OFF
+  ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  ●  This is a supervision warning only; the guarded operation WILL still run.
+  ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  error: refusing to merge https://github.com/example/repo/pull/6020
+    - check 'ci' is not green
+    - mergeable is "UNKNOWN", not MERGEABLE
+  error: these checks are not green: ci
+
+=== unknown-plus-draft
+mergeable sequence: UNKNOWN  retry delay: 0
+exit=1  mergeable reads=1  merge calls=0  elapsed=1.5s
+--- stderr:
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ●  WATCHER DOWN - SUPERVISION IS OFF
+  ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  ●  This is a supervision warning only; the guarded operation WILL still run.
+  ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  error: refusing to merge https://github.com/example/repo/pull/6020
+    - the pull request is a draft
+    - mergeable is "UNKNOWN", not MERGEABLE
+
+=== unknown-plus-red-check
+mergeable sequence: UNKNOWN  retry delay: 0
+exit=1  mergeable reads=1  merge calls=0  elapsed=1.5s
+--- stderr:
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ●  WATCHER DOWN - SUPERVISION IS OFF
+  ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  ●  This is a supervision warning only; the guarded operation WILL still run.
+  ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  error: refusing to merge https://github.com/example/repo/pull/6020
+    - check 'ci' is not green
+    - mergeable is "UNKNOWN", not MERGEABLE
+  error: these checks are not green: ci
+
+=== unknown-plus-closed
+mergeable sequence: UNKNOWN  retry delay: 0
+exit=1  mergeable reads=1  merge calls=0  elapsed=1.4s
+--- stderr:
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ●  WATCHER DOWN - SUPERVISION IS OFF
+  ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  ●  This is a supervision warning only; the guarded operation WILL still run.
+  ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  error: refusing to merge https://github.com/example/repo/pull/6020
+    - state is "CLOSED", not open
+    - mergeable is "UNKNOWN", not MERGEABLE
+
+=== unknown-plus-dirty
+mergeable sequence: UNKNOWN  retry delay: 0
+exit=1  mergeable reads=1  merge calls=0  elapsed=1.5s
+--- stderr:
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ●  WATCHER DOWN - SUPERVISION IS OFF
+  ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  ●  This is a supervision warning only; the guarded operation WILL still run.
+  ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  error: refusing to merge https://github.com/example/repo/pull/6020
+    - mergeStateStatus is DIRTY (conflicts)
+    - mergeable is "UNKNOWN", not MERGEABLE
+
+=== conflicting
+mergeable sequence: CONFLICTING  retry delay: 0
+exit=1  mergeable reads=1  merge calls=0  elapsed=1.4s
+--- stderr:
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ●  WATCHER DOWN - SUPERVISION IS OFF
+  ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  ●  This is a supervision warning only; the guarded operation WILL still run.
+  ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  error: refusing to merge https://github.com/example/repo/pull/6020
+    - mergeable is "CONFLICTING", not MERGEABLE
+
+=== mergeable-unreadable
+mergeable sequence: <static view>  retry delay: 0
+exit=1  mergeable reads=1  merge calls=0  elapsed=1.5s
+--- stderr:
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ●  WATCHER DOWN - SUPERVISION IS OFF
+  ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  ●  This is a supervision warning only; the guarded operation WILL still run.
+  ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  error: refusing to merge https://github.com/example/repo/pull/6020
+    - mergeable is "unreadable", not MERGEABLE
+
+=== unknown-then-mergeable-away-record-unreadable
+mergeable sequence: UNKNOWN MERGEABLE  retry delay: 0
+exit=1  mergeable reads=0  merge calls=0  elapsed=0.1s
+--- stderr:
+  error: PR merge refused - the away-posture record could not be read; nothing was merged
+
+=== unknown-then-mergeable-away-queue-protection
+mergeable sequence: UNKNOWN MERGEABLE  retry delay: 0
+exit=2  mergeable reads=2  merge calls=0  elapsed=1.6s
+--- stderr:
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ●  WATCHER DOWN - SUPERVISION IS OFF
+  ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  ●  This is a supervision warning only; the guarded operation WILL still run.
+  ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  verified: https://github.com/example/repo/pull/6020 is open and mergeable, with every unwaived required check reported and every unwaived check green at head 6020602060206020602060206020602060206020
+  error: GitHub merge refused while away because the base branch's merge-queue state does not prove an immediate merge; nothing was handed to the forge
+

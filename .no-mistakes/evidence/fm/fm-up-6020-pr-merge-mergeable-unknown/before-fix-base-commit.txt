@@ -1,0 +1,21 @@
+=== unknown-twice-then-mergeable
+mergeable sequence: UNKNOWN UNKNOWN MERGEABLE  retry delay: 0
+exit=1  mergeable reads=1  merge calls=0  elapsed=1.4s
+--- stderr:
+  error: refusing to merge https://github.com/example/repo/pull/6020
+    - mergeable is "UNKNOWN", not MERGEABLE
+
+=== unknown-forever
+mergeable sequence: UNKNOWN  retry delay: 0
+exit=1  mergeable reads=1  merge calls=0  elapsed=1.4s
+--- stderr:
+  error: refusing to merge https://github.com/example/repo/pull/6020
+    - mergeable is "UNKNOWN", not MERGEABLE
+
+=== conflicting
+mergeable sequence: CONFLICTING  retry delay: 0
+exit=1  mergeable reads=1  merge calls=0  elapsed=1.7s
+--- stderr:
+  error: refusing to merge https://github.com/example/repo/pull/6020
+    - mergeable is "CONFLICTING", not MERGEABLE
+
