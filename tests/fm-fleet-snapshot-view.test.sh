@@ -470,6 +470,46 @@ EOF
   pass "backlog normalization preserves strict roles and resolves every blocker compatibly"
 }
 
+test_archived_done_blocker_resolves_alongside_live_and_dangling() {
+  local home fakebin out
+  home=$(make_home archived-blocker)
+  cat > "$home/data/backlog.md" <<'EOF'
+## In flight
+
+## Queued
+- [ ] archived-hold - Depends on an archived blocker blocked-by: archived-blocker (repo: alpha) (kind: captain) (hold: waiting on archived blocker) (hold-kind: captain)
+- [ ] live-hold - Depends on a live blocker blocked-by: live-blocker (repo: alpha) (kind: captain) (hold: waiting on live blocker) (hold-kind: captain)
+- [ ] dangling-hold - Depends on no recorded blocker blocked-by: nowhere (repo: alpha) (kind: captain) (hold: waiting on a phantom blocker) (hold-kind: captain)
+
+## Done
+- [x] live-blocker - Live blocker still in the backlog (repo: alpha) (kind: ship) (done 2026-07-20)
+EOF
+  cat > "$home/data/done-archive.md" <<'EOF'
+## Done
+- [x] archived-blocker - Archived blocker retention moved out (repo: alpha) (kind: ship) (done 2026-07-01)
+EOF
+  fakebin=$(make_fakebin "$home")
+  out=$(PATH="$fakebin:$PATH" FM_HOME="$home" "$SNAPSHOT" --json)
+  printf '%s' "$out" | jq -e '
+    (.backlog.records[] | select(.id == "archived-hold")) as $archived
+    | (.backlog.records[] | select(.id == "live-hold")) as $live
+    | (.backlog.records[] | select(.id == "dangling-hold")) as $dangling
+    | $archived.blocked_by_ids == ["archived-blocker"]
+      and $archived.unresolved_blocker_ids == []
+      and $archived.hold_bucket == "live"
+      and $archived.captain_actionable == true
+      and $live.blocked_by_ids == ["live-blocker"]
+      and $live.unresolved_blocker_ids == []
+      and $live.hold_bucket == "live"
+      and $live.captain_actionable == true
+      and $dangling.blocked_by_ids == ["nowhere"]
+      and $dangling.unresolved_blocker_ids == ["nowhere"]
+      and $dangling.hold_bucket == "blocked"
+      and $dangling.captain_actionable == false
+  ' >/dev/null || fail "an archive-resolved, a backlog-resolved, or a dangling blocker diverged from expectations: $out"
+  pass "a blocker recorded Done in the archive resolves like one still Done in the backlog, without disturbing a live blocker or a truly dangling one"
+}
+
 test_event_hints_follow_reconciled_current_state() {
   local home fakebin out hint_gen
   home=$(make_home event-hints)
@@ -1159,6 +1199,7 @@ test_undated_captain_hold_phrasing_and_aging
 test_hold_buckets_are_total_and_text_blind
 test_main_inventory_orphan_and_unstructured_disclosure
 test_normalized_roles_and_plural_blocker_readiness
+test_archived_done_blocker_resolves_alongside_live_and_dangling
 test_event_hints_follow_reconciled_current_state
 test_open_decision_survives_later_unrelated_event
 test_secondmate_open_decision_survives_live_endpoint
