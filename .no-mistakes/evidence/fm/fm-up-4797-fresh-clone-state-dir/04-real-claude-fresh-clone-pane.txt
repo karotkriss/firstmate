@@ -1,0 +1,30 @@
+=== Real Claude Code primary launched in a fresh clone (fb6dfab) on private tmux socket; no state/ before launch ===
+$ ls -A state (after session start)
+.inactive-outcome-reconcile
+.lock
+.lock-session
+.session-start-agents-baseline
+.session-start-complete
+.startup-network.report
+.startup-network.status
+.startup-network.timings
+.trace-context-effective
+.wake-queue
+home-summary.json
+terminal-outcomes
+$ cat state/.lock -> 2660959 (claude)
+--- pane capture ---
+ ▐▛███▛█   Claude Code v2.1.284
+▝▜██████▀  Fable 5.1 with high effort · Claude Max
+ ▝▝   ▝▝   /tmp/fm-lab.wDOZAj/fresh-claude
+❯ Do not run any tools. Reply with only two lines copied verbatim from your SessionStart hook context: the line starting with 'SESSION START' and the line starting with 'lock acquired'. If you have
+  no such context, reply NO-SESSION-START-CONTEXT.
+● SESSION START - /tmp/fm-lab.wDOZAj/fresh-claude
+  lock acquired: harness pid 2660959
+✻ Sautéed for 3s · done 8:54 AM
+                                                                                                                                                                                          48204 tokens
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ✻ session ▰▱▱▱▱ 27% (2:14:12) weekly ▰▰▰▱▱ 57% (5d) · codex weekly ▱▱▱▱▱ 5% (5d) · ctx 5% (48k/1M) · Fable 5.1 (high)
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 3 agents

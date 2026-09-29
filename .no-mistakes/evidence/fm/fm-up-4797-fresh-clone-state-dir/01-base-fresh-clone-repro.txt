@@ -1,0 +1,7 @@
+=== BASE c5f48e4: fresh clone, SessionStart hook (startup) ===
+$ ls /tmp/fm-lab.wDOZAj/fresh-base/state  (before)
+ls: cannot access '/tmp/fm-lab.wDOZAj/fresh-base/state': No such file or directory
+exit=0 stdout_bytes=0
+
+$ ls state (after)
+ls: cannot access '/tmp/fm-lab.wDOZAj/fresh-base/state': No such file or directory

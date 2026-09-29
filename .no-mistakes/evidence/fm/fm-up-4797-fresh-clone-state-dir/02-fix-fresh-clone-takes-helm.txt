@@ -1,0 +1,53 @@
+=== FIX fb6dfab: fresh clone, SessionStart hook (startup) ===
+$ ls state (before)
+ls: cannot access '/tmp/fm-lab.wDOZAj/fresh-fix/state': No such file or directory
+exit=0 stdout_bytes=8647
+--- digest head ---
+
+================================================================================
+SESSION START - /tmp/fm-lab.wDOZAj/fresh-fix
+================================================================================
+
+LOCK
+--------------------------------------------------------------------------------
+lock acquired: harness pid 2458991
+
+BOOTSTRAP
+--------------------------------------------------------------------------------
+(silent - all good)
+
+WAKE QUEUE
+--------------------------------------------------------------------------------
+(no queued wakes)
+================================================================================
+SUPERVISION OPERATING INSTRUCTIONS - primary harness: claude
+================================================================================
+Current state:
+- Lock: held by this session; this session owns normal supervision unless away mode says otherwise.
+- Away/quiet mode: inactive.
+- X mode: inactive; use the default watcher cadence.
+- Ordinary wake: the Stop-owned auto-arm (bin/fm-claude-stop-autoarm.sh) already owns watcher continuity; drain and handle the wake, and do not arm another cycle yourself.
+
+Mode: Claude Stop-hook-owned supervision.
+
+When this session owns supervision and away mode is not active:
+1. Drain first with `bin/fm-wake-drain.sh`.
+   After handling all emitted wakes and reconciling open decisions and unread status lines, run the exact `--ack-through` command printed as `WAKE_ACK_REQUIRED`; until then the work remains durable for idempotent re-handling after interruption.
+--- grep key lines ---
+8:lock acquired: harness pid 2458991
+133:NEXT STEP
+$ ls -A state (after)
+.inactive-outcome-reconcile
+.lock
+.lock-session
+.session-start-agents-baseline
+.session-start-complete
+.startup-network.lock
+.startup-network.lock.owner.qYINNY
+.startup-network.report
+.startup-network.status
+.startup-network.timings
+.trace-context-effective
+.wake-queue
+home-summary.json
+terminal-outcomes

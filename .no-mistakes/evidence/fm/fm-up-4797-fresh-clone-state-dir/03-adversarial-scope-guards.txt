@@ -1,0 +1,27 @@
+=== Adversarial 1: unmarked linked task worktree of a fresh clone (has AGENTS.md + bin/) ===
+/tmp/fm-lab.wDOZAj/linked-task/AGENTS.md
+/tmp/fm-lab.wDOZAj/linked-task/bin
+ls: cannot access '/tmp/fm-lab.wDOZAj/linked-task/state': No such file or directory
+exit=0 stdout_bytes=0
+ls: cannot access '/tmp/fm-lab.wDOZAj/linked-task/state': No such file or directory
+Pi prerequisite mode:
+exit=3 (3 = explicit silent stand-down)
+ls: cannot access '/tmp/fm-lab.wDOZAj/linked-task/state': No such file or directory
+
+=== Adversarial 2: no-mistakes gate agent (NO_MISTAKES_GATE=1) on a fresh plain clone ===
+ls: cannot access '/tmp/fm-lab.wDOZAj/fresh-gate/state': No such file or directory
+exit=0 stdout_bytes=0
+ls: cannot access '/tmp/fm-lab.wDOZAj/fresh-gate/state': No such file or directory
+
+=== Adversarial 3: this gate worktree itself (git-common-dir under .no-mistakes/repos), state moved aside ===
+ls: cannot access '/home/cmckay/.no-mistakes/worktrees/80aee654c94f/01M3PKF5HYVBNWB447TD70F5EC/state': No such file or directory
+exit=0 stdout_bytes=0
+ls: cannot access '/home/cmckay/.no-mistakes/worktrees/80aee654c94f/01M3PKF5HYVBNWB447TD70F5EC/state': No such file or directory
+
+=== Adversarial 4: other hooks + session-start nudge on a fresh primary clone keep standing down ===
+ls: cannot access '/tmp/fm-lab.wDOZAj/fresh-other/state': No such file or directory
+fm-sessionstart-nudge.sh -> exit=0 output_bytes=0 state=absent
+fm-turnend-guard.sh --claude -> exit=0 output_bytes=0 state=absent
+fm-claude-stop-autoarm.sh -> exit=0 output_bytes=0 state=PRESENT
+fm-subagent-pretool-check.sh --claude -> exit=2 output_bytes=596 state=PRESENT
+fm-host-mirror.sh hook claude -> exit=0 output_bytes=0 state=PRESENT
