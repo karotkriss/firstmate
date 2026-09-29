@@ -1979,8 +1979,11 @@ scout_report_lines() {
     | jq -s 'sort_by(.id)'
 }
 
-DONE_ARCHIVE_IDS=$(backlog_json "$DONE_ARCHIVE" 2>/dev/null | jq -c '[.records[]? | select(.structured) | .id]' 2>/dev/null)
-[ -n "$DONE_ARCHIVE_IDS" ] || DONE_ARCHIVE_IDS='[]'
+DONE_ARCHIVE_IDS='[]'
+if [ -f "$DONE_ARCHIVE" ]; then
+  DONE_ARCHIVE_IDS=$(jq -Rnc '[inputs | capture("^[-*][[:space:]]+\\[[xX]\\][[:space:]]+(?<id>[^[:space:]]+)[[:space:]]+-[[:space:]]+")? | .id] | unique' "$DONE_ARCHIVE") \
+    || { echo "fm-fleet-snapshot: done archive read failed" >&2; exit 1; }
+fi
 BACKLOG_JSON=$(backlog_json "$BACKLOG" "$DONE_ARCHIVE_IDS") || { echo "fm-fleet-snapshot: backlog read failed" >&2; exit 1; }
 contribution_tasks_json() {
   local meta id merge_authority

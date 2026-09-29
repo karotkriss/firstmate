@@ -480,13 +480,18 @@ test_archived_done_blocker_resolves_alongside_live_and_dangling() {
 - [ ] archived-hold - Depends on an archived blocker blocked-by: archived-blocker (repo: alpha) (kind: captain) (hold: waiting on archived blocker) (hold-kind: captain)
 - [ ] live-hold - Depends on a live blocker blocked-by: live-blocker (repo: alpha) (kind: captain) (hold: waiting on live blocker) (hold-kind: captain)
 - [ ] dangling-hold - Depends on no recorded blocker blocked-by: nowhere (repo: alpha) (kind: captain) (hold: waiting on a phantom blocker) (hold-kind: captain)
+- [ ] pruned-hold - Depends on a blocker pruned while queued blocked-by: pruned-blocker (repo: alpha) (kind: captain) (hold: waiting on pruned blocker) (hold-kind: captain)
 
 ## Done
 - [x] live-blocker - Live blocker still in the backlog (repo: alpha) (kind: ship) (done 2026-07-20)
 EOF
   cat > "$home/data/done-archive.md" <<'EOF'
-## Done
+
+## Archived 2026-07-15
 - [x] archived-blocker - Archived blocker retention moved out (repo: alpha) (kind: ship) (done 2026-07-01)
+
+## Archived 2026-07-16
+- [ ] pruned-blocker - Queued blocker pruned without finishing (repo: alpha) (kind: ship) (since 2026-07-02)
 EOF
   fakebin=$(make_fakebin "$home")
   out=$(PATH="$fakebin:$PATH" FM_HOME="$home" "$SNAPSHOT" --json)
@@ -494,6 +499,7 @@ EOF
     (.backlog.records[] | select(.id == "archived-hold")) as $archived
     | (.backlog.records[] | select(.id == "live-hold")) as $live
     | (.backlog.records[] | select(.id == "dangling-hold")) as $dangling
+    | (.backlog.records[] | select(.id == "pruned-hold")) as $pruned
     | $archived.blocked_by_ids == ["archived-blocker"]
       and $archived.unresolved_blocker_ids == []
       and $archived.hold_bucket == "live"
@@ -506,8 +512,11 @@ EOF
       and $dangling.unresolved_blocker_ids == ["nowhere"]
       and $dangling.hold_bucket == "blocked"
       and $dangling.captain_actionable == false
-  ' >/dev/null || fail "an archive-resolved, a backlog-resolved, or a dangling blocker diverged from expectations: $out"
-  pass "a blocker recorded Done in the archive resolves like one still Done in the backlog, without disturbing a live blocker or a truly dangling one"
+      and $pruned.unresolved_blocker_ids == ["pruned-blocker"]
+      and $pruned.hold_bucket == "blocked"
+      and $pruned.captain_actionable == false
+  ' >/dev/null || fail "an archive-resolved, a backlog-resolved, a pruned-unfinished, or a dangling blocker diverged from expectations: $out"
+  pass "a blocker recorded Done in the archive resolves like one still Done in the backlog, while an archived unfinished or truly dangling blocker stays open"
 }
 
 test_event_hints_follow_reconciled_current_state() {
