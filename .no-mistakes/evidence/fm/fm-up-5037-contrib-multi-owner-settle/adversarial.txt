@@ -1,0 +1,14 @@
+== A. before retry
+{"task":"alpha","state":"merged","checked_at":"2026-09-16T09:05:00Z","error":null}
+{"task":"beta","state":"open","checked_at":"2026-09-16T08:00:00Z","error":"forge observation unavailable or changed during read"}
+{"task":"gamma","state":"closed","checked_at":"2026-09-16T07:00:00Z","error":null}
+exit=0 stdout=[] forge-calls=0
+== A. after retry
+{"task":"alpha","state":"merged","checked_at":"2026-09-16T09:05:00Z","error":null}
+{"task":"beta","state":"merged","checked_at":"2026-09-16T09:05:00Z","error":null}
+{"task":"gamma","state":"closed","checked_at":"2026-09-16T07:00:00Z","error":null}
+gamma (already terminal) left untouched
+== B. no terminal owner: fresh read still attempted
+exit=0 stdout=[contributions: observation unavailable for https://github.com/o/r/pull/8] forge-calls=1
+{"task":"alpha","state":"open","checked_at":"2026-09-16T09:10:00Z","error":"forge observation unavailable or changed during read"}
+{"task":"beta","state":"open","checked_at":"2026-09-16T09:10:00Z","error":"forge observation unavailable or changed during read"}

@@ -1,0 +1,15 @@
+== 1. first poll: forge reports merged; crash before beta is saved
+mktemp: interrupted (simulated crash)
+exit=1
+{"task":"alpha","state":"merged","checked_at":"2026-09-16T09:05:00Z","error":null,"pending":[],"notified":null}
+{"task":"beta","state":"open","checked_at":"2026-09-16T08:00:00Z","error":null,"pending":["comment:77:2026-09-16T07:30:00Z"],"notified":["comment:77:2026-09-16T07:30:00Z"]}
+== 2. retry poll with the forge DOWN (terminal URL must not be re-read)
+exit=0
+forge calls during retry: 0
+{"task":"alpha","state":"merged","checked_at":"2026-09-16T09:05:00Z","error":null,"pending":[],"notified":null}
+{"task":"beta","state":"merged","checked_at":"2026-09-16T09:05:00Z","error":null,"pending":["comment:77:2026-09-16T07:30:00Z"],"notified":["comment:77:2026-09-16T07:30:00Z"]}
+== 3. a second retry is a no-op (idempotent)
+exit=0
+beta record unchanged by second retry
+== 4. projection each owner sees (snapshot --all)
+{"known":1,"counts":{"captain":0,"fleet":0,"maintainer":0,"nobody":1},"rows":[{"url":"https://github.com/o/r/pull/8","tasks":["alpha","beta"],"actor":"nobody","reason":"forge reports merged","final":true,"checked":true}]}
