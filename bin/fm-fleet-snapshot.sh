@@ -24,7 +24,7 @@
 #     unresolved_blocker_ids, captain_actionable, hold_set, hold_age_days,
 #     and hold_bucket fields.
 #     Repeated blocker tokens remain ordered; a blocker resolves only when its
-#     structured record is Done in the backlog or the configured Done archive,
+#     structured record is Done in the backlog or in data/done-archive.md,
 #     and missing ids stay open.
 #     There is no separate decision type: any captain-held task is the same
 #     primitive, whatever kind its row carries.
