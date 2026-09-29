@@ -255,6 +255,7 @@ test_recovery_fresh_status_read_resolves_before_firing() {
   home=$(setup_parent fresh-read-before-fire)
   state="$home/state"
   status="$state/hibit.status"
+  export FM_PENDING_REPLY_SEND_HOOK=true
   export FM_PENDING_REPLY_GRACE_SECS=120
   export FM_PENDING_REPLY_NOW=30000
   corr=$(fm_pending_reply_create "$home" "$state" "hibit" "reply lands just before the demand fires")
@@ -269,9 +270,16 @@ test_recovery_fresh_status_read_resolves_before_firing() {
     fail "setup: nothing should resolve yet"
   fi
 
-  # The correlated reply lands, carrying a non-terminal verb, after that
-  # cached signature was recorded.
+  # The correlated reply lands, carrying a non-terminal verb, in a write the
+  # cached signature cannot see (for example a same-size rewrite inside the
+  # stat timestamp granularity): the cache now matches the file that holds it,
+  # so only a read that bypasses the cache can find the reply.
+  rec=$(fm_pending_reply_path "$state" "$corr")
   printf 'working [corr=%s]: still wrapping up\n' "$corr" >> "$status"
+  fm_pending_reply_set "$rec" parent_status_scan_signature "$(fm_pending_reply_file_signature "$status")"
+  if fm_pending_reply_try_resolve "$state" "$corr"; then
+    fail "setup: the cached signature should hide the reply from a cached read"
+  fi
 
   # Grace has elapsed from the turn's completion, so the demand is otherwise
   # eligible to fire; its own fresh, uncached read must catch the reply first.
@@ -281,10 +289,30 @@ test_recovery_fresh_status_read_resolves_before_firing() {
   fi
   [ "$(phase_of "$state" "$corr")" = resolved ] \
     || fail "the fresh pre-fire read should have resolved the record, got $(phase_of "$state" "$corr")"
-  rec=$(fm_pending_reply_path "$state" "$corr")
   [ "$(fm_pending_reply_get "$rec" resolved_via)" = status ] \
     || fail "resolved_via should be status"
 
+  # The missed-report escalation takes the same fresh read before firing.
+  export FM_PENDING_REPLY_NOW=31000
+  corr=$(fm_pending_reply_create "$home" "$state" "hibit" "reply lands just before the escalation fires")
+  rec=$(fm_pending_reply_path "$state" "$corr")
+  fm_pending_reply_mark_delivered "$state" "$corr"
+  fm_pending_reply_mark_turn_completed "$state" "$corr" request
+  export FM_PENDING_REPLY_NOW=31120
+  fm_pending_reply_send_recovery "$state" "$corr" || fail "setup: recovery send failed"
+  fm_pending_reply_mark_turn_completed "$state" "$corr" recovery
+  printf 'working [corr=%s]: still wrapping up\n' "$corr" >> "$status"
+  fm_pending_reply_set "$rec" parent_status_scan_signature "$(fm_pending_reply_file_signature "$status")"
+  export FM_PENDING_REPLY_NOW=31240
+  fm_pending_reply_maybe_escalate "$state" "$corr" 2>/dev/null \
+    || fail "the escalation's fresh read should resolve the record"
+  [ "$(phase_of "$state" "$corr")" = resolved ] \
+    || fail "the fresh pre-escalation read should have resolved the record, got $(phase_of "$state" "$corr")"
+  if grep -qF "blocked [key=pending-reply-$corr]" "$status"; then
+    fail "escalation must not publish once a correlated reply has landed"
+  fi
+
+  unset FM_PENDING_REPLY_SEND_HOOK
   export FM_PENDING_REPLY_GRACE_SECS=0
   pass "one fresh status read immediately before firing catches a just-landed reply, any verb"
 }

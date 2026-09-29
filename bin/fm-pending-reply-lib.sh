@@ -937,7 +937,8 @@ fm_pending_reply_recovery_message() {  # <record-path>
 fm_pending_reply_send_recovery() {  # <state-dir> <corr_id>
   local state=$1 corr=$2
   local rec phase completed delivered attempted grace now age task_id msg parent_home send_status=0
-  local sender_pid sender_identity status_file
+  local sender_pid sender_identity status_file lock
+  local STATE FM_WAKE_QUEUE FM_WAKE_QUEUE_LOCK
   rec=$(fm_pending_reply_path "$state" "$corr")
   [ -f "$rec" ] || return 1
   phase=$(fm_pending_reply_get "$rec" phase)
@@ -962,18 +963,32 @@ fm_pending_reply_send_recovery() {  # <state-dir> <corr_id>
   task_id=$(fm_pending_reply_get "$rec" task_id)
   # A remote mate's report may exist and simply not have been mirrored yet.
   fm_pending_reply_missing_report_is_evidence "$state" "$task_id" "$completed" || return 1
-  # One fresh, uncached read immediately before firing: a correlated report can
-  # land in the instant between the last resolve attempt and this point.
   status_file=$(fm_pending_reply_get "$rec" parent_status)
-  fm_pending_reply_try_resolve "$state" "$corr" "$status_file" && return 1
   parent_home=$(fm_pending_reply_get "$rec" parent_home)
   msg=$(fm_pending_reply_recovery_message "$rec")
   sender_pid=${BASHPID:-$$}
   sender_identity=$(fm_pending_reply_pid_identity "$sender_pid") || return 1
-  fm_pending_reply_set "$rec" recovery_sender_pid "$sender_pid" || return 1
-  fm_pending_reply_set "$rec" recovery_sender_identity "$sender_identity" || return 1
-  fm_pending_reply_set "$rec" recovery_attempted_epoch "$now" || return 1
-  fm_pending_reply_set "$rec" phase recovery_sending || return 1
+  # One fresh, uncached read immediately before firing, under the same
+  # per-correlation lock that records the send: a correlated report resolved
+  # in between can then never be overwritten by the repost. Lock globals are
+  # local for the reason fm_pending_reply_try_resolve documents.
+  STATE=$state
+  lock="$state/.pending-reply-$corr.lock"
+  # Deliberately undirected: bin/fm-wake-lib.sh is expanded once at the
+  # fm_pending_reply_try_resolve site; each directed site would re-expand its
+  # whole transitive graph under ShellCheck's external-source traversal.
+  . "$_FM_PENDING_REPLY_LIB_DIR/fm-wake-lib.sh"
+  fm_lock_acquire_wait "$lock" || return 1
+  if [ "$(fm_pending_reply_get "$rec" phase)" != awaiting_report ] \
+    || _fm_pending_reply_try_resolve_locked "$state" "$corr" "$status_file" \
+    || ! fm_pending_reply_set "$rec" recovery_sender_pid "$sender_pid" \
+    || ! fm_pending_reply_set "$rec" recovery_sender_identity "$sender_identity" \
+    || ! fm_pending_reply_set "$rec" recovery_attempted_epoch "$now" \
+    || ! fm_pending_reply_set "$rec" phase recovery_sending; then
+    fm_lock_release "$lock"
+    return 1
+  fi
+  fm_lock_release "$lock"
   if [ -n "${FM_PENDING_REPLY_SEND_HOOK:-}" ]; then
     # Hook receives: task_id message
     # shellcheck disable=SC2086
