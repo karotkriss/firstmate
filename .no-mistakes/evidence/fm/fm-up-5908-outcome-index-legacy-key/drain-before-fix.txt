@@ -1,0 +1,24 @@
+===== [BASE 46d58d6 (before fix)] bin=/tmp/fm-base-bin.eZgwWv =====
+--- S1: legacy key default:w0:p2 in history + uncovered fresh done status
+STATUS OUTCOME BACKSTOP SKIPPED: bounded outcome indexes could not be rebuilt because the outcome store is unsafe; repair it before relying on drain recovery.
+drain rc=0
+history unchanged: yes
+ready marker: MISSING
+index files: 
+--- S2: legacy + traversal-ish keys mixed with valid keys; covered task stays silent, uncovered surfaces
+STATUS OUTCOME BACKSTOP SKIPPED: bounded outcome indexes could not be rebuilt because the outcome store is unsafe; repair it before relying on drain recovery.
+drain rc=0
+history unchanged: yes
+ready marker: MISSING
+index files: 
+files escaped into /tmp/fm-lab.fkXBlq: 0
+--- S3: genuine store fault (malformed JSON row) still fails closed
+STATUS OUTCOME BACKSTOP SKIPPED: bounded outcome indexes could not be rebuilt because the outcome store is unsafe; repair it before relying on drain recovery.
+drain rc=0
+--- S4: recording new outcomes is unchanged (valid key accepted, endpoint key refused)
+1
+append valid rc=0
+usage: fm-branch-outcome.sh append --task <id> --verdict routine|captain --summary <text> [--wake <text>] [--silent true|false] | unread | mark-read --through <seq> | unprocessed | mark-processed --through <seq> | present | processed-init [--held-lock] | list [--recent <n>] | lookup --seqs <n,...> | startup-replay | seed-tail
+append endpoint rc=2
+store rows: 1
+{"seq":1,"task":"fresh","summary":"new valid outcome"}
