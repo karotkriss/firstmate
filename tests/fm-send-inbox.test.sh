@@ -130,7 +130,7 @@ test_text_steer_rides_inbox() {
   body=$(record_body _ "$rec")
   [ "$body" = "please rebase onto main" ] || fail "the recorded body differs: $body"
   typed=$(cat "$dir/send.log")
-  assert_contains "$typed" "Firstmate instruction waiting: list 't1.inbox'/*.msg" \
+  assert_contains "$typed" "Firstmate instruction waiting: list \"\$FM_TASK_INBOX\"/*.msg in your 't1.inbox' steering inbox" \
     "the doorbell should direct the worker to drain the inbox"
   case "$typed" in
   *"please rebase onto main"*) fail "the payload must never be typed:"$'\n'"$typed" ;;
@@ -142,7 +142,7 @@ test_text_steer_rides_inbox() {
 # what a composer read can prove, so a Herdr submit reports it never reached
 # the pane and every re-ring fails the same way.
 test_deep_home_doorbell_stays_short() {
-  local shallow deep home err rest typed shallow_typed
+  local shallow deep home err rest typed shallow_typed found
   shallow=$(setup_case shallow-home)
   run_send "$shallow" "$shallow/send.err" -- t1 "please continue" || fail "the shallow-home send failed"
   shallow_typed=$(cat "$shallow/send.log")
@@ -169,6 +169,13 @@ test_deep_home_doorbell_stays_short() {
   case "$rest" in
   *t1.inbox*) fail "the doorbell should name the inbox once: $typed" ;;
   esac
+  found=$(cd / && FM_TASK_INBOX="$home/state/t1.inbox" bash -c 'ls "$FM_TASK_INBOX"/*.msg') ||
+    fail "a shell with FM_TASK_INBOX exported could not list the deep inbox"
+  [ "$found" = "$home/state/t1.inbox/001.msg" ] ||
+    fail "the doorbell's list instruction did not resolve the deep inbox from an unrelated cwd: $found"
+  (cd / && FM_TASK_INBOX="$home/state/t1.inbox" bash -c 'mv "$FM_TASK_INBOX"/001.msg "$FM_TASK_INBOX"/handled/') ||
+    fail "the doorbell's mv instruction did not acknowledge through FM_TASK_INBOX"
+  [ -f "$home/state/t1.inbox/handled/001.msg" ] || fail "the acknowledged record did not land in handled/"
   pass "fm-send inbox: a deep home rings the same short doorbell naming the inbox once"
 }
 

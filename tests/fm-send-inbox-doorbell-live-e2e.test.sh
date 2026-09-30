@@ -5,15 +5,16 @@
 # The steering inbox's one behavioral assumption is that a real worker agent
 # follows the constant self-describing doorbell line: list the inbox, read and
 # act on its records in numeric order, then mv each into handled/. The
-# doorbell names the inbox by its short name and relies on the brief for the
-# full path, so each worker first receives the brief's steering-inbox sentence.
-# A stub can only confirm the assumption already
-# written into the stub, so per .agents/skills/firstmate-coding-guidelines
-# this is proven against every INSTALLED verified harness: each is launched
-# idle in an isolated tmux server, given that sentence, steered through the
-# REAL fm-send (durable record + doorbell), and must both ACT on the
-# instruction (create a named file) and ACKNOWLEDGE it (the mv into handled/),
-# failing loudly with the harness name and version.
+# doorbell names the inbox as "$FM_TASK_INBOX", so each worker is launched the
+# way bin/fm-spawn.sh launches it, with FM_TASK_INBOX exported to its home's
+# state/<task>.inbox, and receives no brief at all: it must resolve the inbox
+# from the doorbell plus its own environment. A stub can only confirm the
+# assumption already written into the stub, so per
+# .agents/skills/firstmate-coding-guidelines this is proven against every
+# INSTALLED verified harness: each is launched idle in an isolated tmux server,
+# steered through the REAL fm-send (durable record + doorbell), and must both
+# ACT on the instruction (create a named file) and ACKNOWLEDGE it (the mv into
+# handled/), failing loudly with the harness name and version.
 #
 # Run explicitly with FM_SEND_INBOX_LIVE_E2E=1. This test spends a small
 # number of real model tokens per installed harness (one short turn each) -
@@ -133,7 +134,7 @@ check_harness_doorbell() {  # <name>
   task="live-$name"
   acted="$LAB/acted-$name"
   tmux -L "$SOCKET" new-window -d -t "$SESSION:" -n "$win" -c "$ROOT" \
-    -- bash -lc "$cmd" \
+    -- bash -lc "export FM_TASK_INBOX=$(printf '%q' "$home/state/$task.inbox"); $cmd" \
     || { FAILED=1; printf 'not ok - %s (%s): could not launch in the isolated tmux server\n' "$name" "$version" >&2; return 0; }
   wait_ready "$win"; ready_rc=$?
   if [ "$ready_rc" -eq 1 ]; then
@@ -145,17 +146,6 @@ check_harness_doorbell() {  # <name>
   fi
   [ "$ready_rc" -eq 0 ] || note "$name ($version): idle composer never classified empty; proceeding as production does (advisory check skips only on pending)"
   printf 'window=%s:%s\nkind=ship\nharness=%s\n' "$SESSION" "$win" "$name" > "$home/state/$task.meta"
-  # The brief's steering-inbox sentence (bin/fm-dod-lib.sh role contract),
-  # which is where a real worker learns the full path the doorbell points at.
-  fm_backend_send_text_submit tmux "$SESSION:$win" \
-    "Your steering inbox is $home/state/$task.inbox; when told an instruction is waiting there, read and acknowledge its messages. Reply with one short word now." \
-    2 0.4 0.3 >/dev/null 2>&1 || true
-  i=0
-  sleep 3
-  while [ "$i" -lt 60 ] && [ "$(fm_backend_busy_state tmux "$SESSION:$win" 2>/dev/null)" = busy ]; do
-    sleep 1
-    i=$((i + 1))
-  done
   if ! FM_HOME="$home" FM_ROOT_OVERRIDE="$home" "$ROOT/bin/fm-send.sh" "$task" \
     "Firstmate live check: run exactly this shell command now: touch $acted - then follow the mv instruction you were given for this message. Reply with one short line." \
     >/dev/null 2>&1; then
