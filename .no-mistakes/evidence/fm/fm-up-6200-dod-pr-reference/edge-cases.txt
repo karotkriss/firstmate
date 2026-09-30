@@ -1,0 +1,7 @@
+PR#12 checks green                                      -> not-ready
+(PR #12) checks green                                   -> ci-ready
+SPR #12 checks green                                    -> not-ready
+checks green PR https://github.com/o/r/pull/9           -> ci-ready
+PROD https://github.com/o/r/pulls checks green          -> not-ready
+PR https://github.com/o/r/pull/abc checks green         -> not-ready
+PR #12 checks pending                                   -> not-ready
