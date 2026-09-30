@@ -1,0 +1,5 @@
+$ FM_HOME=<deep lab home> <base eb77f02>/bin/fm-send.sh scout1 '<steer>'   (Herdr lab fm-lab-doorbell6120-1875326-1714)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.24y0i0/secondmate-homes/firstmate-7bab20/1/firstmate/deep-nested-home-for-issue-6120-validation
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+fm-send exit=0
+acted=yes acked=yes

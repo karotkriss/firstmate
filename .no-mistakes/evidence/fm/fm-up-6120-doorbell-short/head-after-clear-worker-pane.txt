@@ -1,0 +1,16 @@
+❯ /clear
+❯ : Firstmate instruction waiting: list "$FM_TASK_INBOX"/*.msg in your 'scout1.inbox' steering inbox, read and act on
+  each in numeric order, then mv each into its handled/.
+● I'll list the steering inbox messages and act on them in order.
+  Ran 1 shell command
+● One message (004) asks to run a single touch command. Running it and moving the message to handled.
+  Ran 1 shell command
+● Acknowledged message 004: ran the live check, created /tmp/fm-lab.24y0i0/acted-after-clear, and moved 004.msg into
+  handled/. The inbox is now empty.
+✻ Baked for 14s · done 10:17 AM
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⚠ Transcript saving is off — inherited CLAUDE_CODE_CHILD_SESSION marker · restart with CLAUDE_CODE_FORCE_SESSION_PE…
+  ✻ session ▰▱▱▱▱ 22% (4:32:34) weekly ▰▰▱▱▱ 30% (4d) · codex weekly ▰▰▱▱▱ 33% (4d) · ctx 4% (37k/1M) · Fable 5.1 (hi…
+  ⏵⏵ bypass permissions on (shift+tab to cycle)

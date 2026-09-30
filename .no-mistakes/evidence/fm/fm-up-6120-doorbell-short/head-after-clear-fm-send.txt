@@ -1,0 +1,3 @@
+$ FM_HOME=<deep lab home> bin/fm-send.sh scout1 '<steer>'   (HEAD, worker context wiped with /clear first)
+fm-send exit=0
+acted=yes acked=yes after ~12s

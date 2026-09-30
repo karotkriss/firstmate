@@ -1,0 +1,3 @@
+$ FM_HOME=<deep lab home> <base eb77f02>/bin/fm-send.sh scout1 '<steer>'   (Herdr lab fm-lab-doorbell6120-1875326-1714, worker pane narrowed to 48 cols)
+fm-send exit=0
+acted=yes acked=yes

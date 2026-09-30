@@ -1,0 +1,5 @@
+doorbell_length=173
+doorbell=: Firstmate instruction waiting: list "$FM_TASK_INBOX"/*.msg in your 'doorbell2.inbox' steering inbox, read and act on each in numeric order, then mv each into its handled/.
+Handled message 001: ran the touch command, and moved the record into handled/.
+acted=yes
+acknowledged=yes

@@ -1,0 +1,4 @@
+# /proc/<claude pid>/environ of the real fm-spawn'd scout (Herdr lab, deep lab home)
+pid=1885361
+FM_TASK_ID=scout1
+FM_TASK_INBOX=/tmp/fm-lab.24y0i0/secondmate-homes/firstmate-7bab20/1/firstmate/deep-nested-home-for-issue-6120-validation/state/scout1.inbox

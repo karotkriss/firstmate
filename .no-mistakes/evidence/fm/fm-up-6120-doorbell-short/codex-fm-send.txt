@@ -1,0 +1,3 @@
+$ FM_HOME=<lab home> bin/fm-send.sh cx1 '<steer>'  (HEAD; real codex codex-cli 0.159.2, no brief, only FM_TASK_INBOX exported, cwd /tmp)
+fm-send: doorbell not typed because the agent in cx:0 has exited; the steer is durably recorded at /tmp/fm-lab.24y0i0/cxlab/state/cx1.inbox/001.msg for recovery (stuck-crewmate-recovery), and the watcher will not re-ring a dead pane
+fm-send exit=0

@@ -1,0 +1,10 @@
+not ok - claude (2.1.285 (Claude Code)): composer stayed visibly pending; the pane is not steerable
+#    Quick safety check: Is this a project you created or one you trust? (Like your own code, a well-known open source project, or work from your team). If not, take a moment to review what's in this folder first.
+#    Claude Code'll be able to read, edit, and execute files here.
+#    Security guide
+#    ❯ No, exit
+#      Yes, I trust this folder
+#    Enter to confirm · Esc to cancel
+# codex (codex-cli 0.157.0): re-rang the doorbell once (watcher's role) at 120s
+not ok - codex (codex-cli 0.157.0): doorbell not honored within 240s (acted=no acked=no)
+not ok - live steering-inbox doorbell guard found failures above

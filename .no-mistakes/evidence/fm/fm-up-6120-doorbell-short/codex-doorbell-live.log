@@ -1,0 +1,13 @@
+# codex (codex-cli 0.159.2): re-rang the doorbell once (watcher's role) at 120s
+not ok - codex (codex-cli 0.159.2): doorbell not honored within 240s (acted=no acked=no)
+#   › PreToolUse            2           0           2           Before a tool executes
+#     PermissionRequest     0           0           0           When permission is requested
+#     PostToolUse           0           0           0           After a tool executes
+#     PreCompact            0           0           0           Before context compaction
+#     PostCompact           0           0           0           After context compaction
+#     SessionStart          6           5           1           When a new session starts
+#     SessionEnd            0           0           0           Right before a session ends
+#     UserPromptSubmit      0           0           0           When the user submits a prompt
+#   ↓
+#     t trust all · enter review · esc close
+not ok - live steering-inbox doorbell guard found failures above

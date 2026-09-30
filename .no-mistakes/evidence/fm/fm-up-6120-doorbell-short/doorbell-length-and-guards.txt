@@ -1,0 +1,14 @@
+home=/tmp/x/home (11 chars)
+  base (185): : Firstmate instruction waiting: list '/tmp/x/home/state/t1.inbox'/*.msg and, in numeric order, read and act on each, then mv each handled file to '/tmp/x/home/state/t1.inbox'/handled/.
+  head (166): : Firstmate instruction waiting: list "$FM_TASK_INBOX"/*.msg in your 't1.inbox' steering inbox, read and act on each in numeric order, then mv each into its handled/.
+home=/tmp/fm-lab.abc123/secondmate-homes/firstmate-7bab20/1/firstmate/deep-nested-secondmate-home-for-issue-6120-validation (118 chars)
+  base (399): : Firstmate instruction waiting: list '/tmp/fm-lab.abc123/secondmate-homes/firstmate-7bab20/1/firstmate/deep-nested-secondmate-home-for-issue-6120-validation/state/t1.inbox'/*.msg and, in numeric order, read and act on each, then mv each handled file to '/tmp/fm-lab.abc123/secondmate-homes/firstmate-7bab20/1/firstmate/deep-nested-secondmate-home-for-issue-6120-validation/state/t1.inbox'/handled/.
+  head (166): : Firstmate instruction waiting: list "$FM_TASK_INBOX"/*.msg in your 't1.inbox' steering inbox, read and act on each in numeric order, then mv each into its handled/.
+--- adversarial: non-printable inbox name
+rc=1 out=[]
+--- adversarial: quote in inbox name
+: Firstmate instruction waiting: list "$FM_TASK_INBOX"/*.msg in your 'it'\''s.inbox' steering inbox, read and act on each in numeric order, then mv each into its handled/.
+shell-parse of line (bare shell no-op):
+  parsed ok, rc=0 (no-op)
+--- record in handled/ path
+: Firstmate instruction waiting: list "$FM_TASK_INBOX"/*.msg in your 't1.inbox' steering inbox, read and act on each in numeric order, then mv each into its handled/.

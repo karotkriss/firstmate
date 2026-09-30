@@ -1,0 +1,38 @@
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-doorbell-open.vVls7q/a/very/deep/secondmate/home/whose/path/must/not/lengthen/the/doorbell
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the requested message WILL still be sent.
+●  repair missing watcher supervision with a foreground checkpoint: bin/fm-watch-checkpoint.sh --seconds 180.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+session=fm-lab-doorbell-open-251595-4536
+pane=w1:p1
+doorbell_length=118
+captured_doorbell=  ┃  : Firstmate instruction waiting: list "$FM_TASK_INBOX"/*.msg in your 'doorbell1.inbox' steering inbox, read and
+acted=no
+acknowledged=no
+     + Thought: 292ms
+
+  ┃
+  ┃  $ ls -v "$FM_TASK_INBOX"/*.msg 2>/dev/null || echo "No messages found"
+  ┃
+  ┃  /tmp/fm-doorbell-open.vVls7q/a/very/deep/secondmate/home/whose/path/must/not/lengthen/the/doorbell/state/
+  ┃  doorbell1.inbox/001.msg
+  ┃
+
+     ▣  Build · DeepSeek V4 Flash (Huawei MaaS)
+
+
+
+
+
+
+
+
+  ┃
+  ┃
+  ┃
+  ┃  Build · DeepSeek V4 Flash (Huawei MaaS) Huawei ModelArts MaaS
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+   ⬝⬝⬝⬝⬝■■■ Too many requests, the rate limit is 60000 tokens per minute. [retrying in 9s attempt #4]   esc interrupt

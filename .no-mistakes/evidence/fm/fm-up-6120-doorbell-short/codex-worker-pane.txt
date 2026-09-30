@@ -1,0 +1,8 @@
+  >_ OpenAI Codex (v0.159.2)
+     /tmp
+  permissions: YOLO mode
+  What are we poking with a metaphorical stick?
+                                                                                                         ⣀⣤⣤⣤⣀⣀
+› Ask Codex to do anything
+  GPT-5.6-Sol medium · /tmp
+  ← for agents · ? for shortcuts                                                                                                                                                                   ⚠ 1 warning · f2 to view
