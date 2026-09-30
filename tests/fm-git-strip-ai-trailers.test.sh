@@ -271,6 +271,23 @@ test_unresolvable_project_hookspath_still_refuses() {
   pass "an unresolvable project core.hooksPath still refuses the commit"
 }
 
+test_valueless_project_hookspath_still_refuses() {
+  local repo hooks head err
+  repo="$TMP_ROOT/valueless-hookspath"
+  make_repo "$repo"
+  hooks="$TMP_ROOT/hooks-valueless"
+  "$STRIP" install "$hooks" "$repo" || fail "install should succeed before the valueless key is written"
+  head=$(git -C "$repo" rev-parse HEAD)
+  printf 'note\n' >>"$repo/README.md"
+  git -C "$repo" add README.md
+  printf '[core]\n\thooksPath\n' >>"$repo/.git/config"
+  err=$(with_hooks_env "$hooks" git -C "$repo" commit -q -m 'fix: valueless hooksPath' 2>&1) &&
+    fail "a commit succeeded although core.hooksPath has no value"
+  assert_contains "$err" "refusing to skip its pre-commit hook" "the refusal did not name the skipped hook"
+  assert_equals "$head" "$(git -C "$repo" -c core.hooksPath=x rev-parse HEAD)" "a refused commit still moved HEAD"
+  pass "a valueless project core.hooksPath still refuses the commit"
+}
+
 write_refusing_pre_push() {  # <path> <marker>
   cat >"$1" <<SH
 #!/usr/bin/env bash
@@ -350,6 +367,7 @@ test_project_hook_generated_after_install_still_runs
 test_pane_hookspath_does_not_reroute_another_repository
 test_empty_project_hookspath_runs_no_repository_hook
 test_unresolvable_project_hookspath_still_refuses
+test_valueless_project_hookspath_still_refuses
 test_repository_pre_push_runs_on_every_override_channel
 test_git_c_override_still_strips_and_chains_commit_hooks
 test_strip_msgfile_alone_does_not_rewrite_author_fields
