@@ -1,0 +1,13 @@
+##### TARGET 9875ead, project core.hooksPath mode=valueless
+== fm-spawn exit=0
+== worker launch prefix: export COMPACT_ADVISER_DISABLE=1; export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0='/tmp/fm-lab.Lsg1BN/state/hookspath-6171-z01.git-hooks'; ...
+== worker pane:
+error: missing value for 'core.hookspath'
+fatal: bad config line 10 in file /tmp/fm-lab.Lsg1BN/case/project/.git/config
+error: missing value for 'core.hookspath'
+fatal: bad config variable 'core.hookspath' in file '/tmp/fm-lab.Lsg1BN/case/project/.git/config' at line 10
+fm-git-strip-ai-trailers: cannot resolve this repository's hooks directory; refusing to skip its pre-commit hook
+commit-exit=1
+PANE-DONE
+== result: commit REFUSED (HEAD unchanged)
+== default .git/hooks/pre-commit did not run

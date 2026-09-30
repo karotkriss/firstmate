@@ -1,0 +1,11 @@
+##### TARGET 9875ead, project core.hooksPath mode=empty
+== fm-spawn exit=0
+== worker launch prefix: export COMPACT_ADVISER_DISABLE=1; export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0='/tmp/fm-lab.yFrppL/state/hookspath-6171-z01.git-hooks'; ...
+== worker pane:
+commit-exit=0
+PANE-DONE
+== result: commit LANDED
+== message:
+   fix: worker commit under hooksPath=empty
+   
+== default .git/hooks/pre-commit did not run

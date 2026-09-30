@@ -1,0 +1,3 @@
+##### control: plain git (no wrapper), core.hooksPath=''
+commit-exit=0
+(no default-pre-commit-RAN line above = plain git ran no hook)
