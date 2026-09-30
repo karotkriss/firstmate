@@ -623,7 +623,7 @@ fm_dod_named_head_reachable_outside_worktree() {  # <worktree> <project> <mode> 
   fi
   [ -n "$project" ] && [ -d "$project" ] || return 1
   branch=$(git -C "$wt" symbolic-ref -q --short HEAD 2>/dev/null) || return 1
-  GIT_TERMINAL_PROMPT=0 fm_run_timed 20 git -C "$project" fetch --quiet --no-tags origin \
+  GIT_TERMINAL_PROMPT=0 fm_run_timed 5 git -C "$project" fetch --quiet --no-tags origin \
     "+refs/heads/$branch:refs/remotes/origin/$branch" >/dev/null 2>&1 || return 1
   fm_dod_ref_contains "$project" refs/remotes "$sha"
 }
