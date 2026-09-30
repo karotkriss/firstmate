@@ -1,0 +1,87 @@
+################ A. stale record, claim names live-task, NO --force (records-only still allowed)
+claim: task=live-task home=/tmp/fm-lab.u9xy3z 
+$ fm-teardown.sh stale-task 
+warning: task stale-task's recorded worktree /tmp/fm-lab.u9xy3z/pool/.treehouse/demo-248bdd/1/demo was reassigned to task live-task (home /tmp/fm-lab.u9xy3z), which claimed that pool slot after this record was written; that slot is no longer stale-task's, so its processes, copy, and claim are left untouched and only stale-task's own cleanup runs.
+REFUSED: scout task stale-task has no report at /tmp/fm-lab.u9xy3z/data/stale-task/report.md.
+The report is the work product. Have the crewmate write it, or use --force after explicit discard approval.
+exit=1
+--- state/: live-task.meta stale-task.meta 
+--- claim: task=live-task home=/tmp/fm-lab.u9xy3z 
+--- slot checkout: claimant-file.txt present
+--- worker in slot alive: yes
+--- tmux windows: fm-live-task fm-stale-task 
+--- treehouse status:
+    
+    1     leased       /tmp/fm-lab.u9xy3z/pool/.treehouse/demo-248bdd/1/demo  (held by fm-lab)
+                       sleep (3748392)
+
+################ B. claimant full teardown while stale record still names its slot (check kept -> refuse)
+claim: task=live-task home=/tmp/fm-lab.Fkk3jR 
+$ fm-teardown.sh live-task --force
+REFUSED: task live-task's recorded worktree /tmp/fm-lab.Fkk3jR/pool/.treehouse/demo-652cdd/1/demo is also task stale-task's recorded worktree.
+Returning that pool slot would kill stale-task's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh live-task; bin/fm-crew-state.sh stale-task), then re-run teardown.
+exit=1
+--- state/: live-task.meta stale-task.meta 
+--- claim: task=live-task home=/tmp/fm-lab.Fkk3jR 
+--- slot checkout: claimant-file.txt present
+--- worker in slot alive: yes
+--- tmux windows: fm-live-task fm-stale-task 
+--- treehouse status:
+    
+    1     leased       /tmp/fm-lab.Fkk3jR/pool/.treehouse/demo-652cdd/1/demo  (held by fm-lab)
+                       sleep (3781380)
+
+################ C. both records, NO claim (full teardown -> exclusivity check kept, refuse)
+bash: line 13: /tmp/fm-lab.1sH94g/pool/.treehouse/demo-c826aa/1/.fm-slot-owner: No such file or directory
+claim: <none>
+$ fm-teardown.sh stale-task --force
+REFUSED: task stale-task's recorded worktree /tmp/fm-lab.1sH94g/pool/.treehouse/demo-c826aa/1/demo is also task live-task's recorded worktree.
+Returning that pool slot would kill live-task's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh stale-task; bin/fm-crew-state.sh live-task), then re-run teardown.
+exit=1
+--- state/: live-task.meta stale-task.meta 
+/tmp/fm6184-setup.sh: line 26: /tmp/fm-lab.1sH94g/pool/.treehouse/demo-c826aa/1/.fm-slot-owner: No such file or directory
+--- claim: <none>
+--- slot checkout: claimant-file.txt present
+--- worker in slot alive: yes
+--- tmux windows: fm-live-task fm-stale-task 
+--- treehouse status:
+    
+    1     leased       /tmp/fm-lab.1sH94g/pool/.treehouse/demo-c826aa/1/demo  (held by fm-lab)
+                       sleep (3804400)
+
+################ D. both records, claim names stale-task itself (mine -> full teardown, refuse)
+claim: task=stale-task home=/tmp/fm-lab.YNGwQ0 
+$ fm-teardown.sh stale-task --force
+REFUSED: task stale-task's recorded worktree /tmp/fm-lab.YNGwQ0/pool/.treehouse/demo-26d25d/1/demo is also task live-task's recorded worktree.
+Returning that pool slot would kill live-task's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh stale-task; bin/fm-crew-state.sh live-task), then re-run teardown.
+exit=1
+--- state/: live-task.meta stale-task.meta 
+--- claim: task=stale-task home=/tmp/fm-lab.YNGwQ0 
+--- slot checkout: claimant-file.txt present
+--- worker in slot alive: yes
+--- tmux windows: fm-live-task fm-stale-task 
+--- treehouse status:
+    
+    1     leased       /tmp/fm-lab.YNGwQ0/pool/.treehouse/demo-26d25d/1/demo  (held by fm-lab)
+                       sleep (3838672)
+
+################ E. both records, unreadable claim (unsafe -> refuse)
+claim: not-a-claim 
+$ fm-teardown.sh stale-task --force
+REFUSED: task stale-task's recorded worktree /tmp/fm-lab.NX8OGk/pool/.treehouse/demo-321027/1/demo is also task live-task's recorded worktree.
+Returning that pool slot would kill live-task's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh stale-task; bin/fm-crew-state.sh live-task), then re-run teardown.
+exit=1
+--- state/: live-task.meta stale-task.meta 
+--- claim: not-a-claim 
+--- slot checkout: claimant-file.txt present
+--- worker in slot alive: yes
+--- tmux windows: fm-live-task fm-stale-task 
+--- treehouse status:
+    
+    1     leased       /tmp/fm-lab.NX8OGk/pool/.treehouse/demo-321027/1/demo  (held by fm-lab)
+                       sleep (3868152)
+

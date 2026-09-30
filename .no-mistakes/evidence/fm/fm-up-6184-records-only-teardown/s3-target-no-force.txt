@@ -1,0 +1,17 @@
+################ A2. stale record (report written), claim names live-task, NO --force
+$ fm-teardown.sh stale-task
+warning: task stale-task's recorded worktree /tmp/fm-lab.xXqQyp/pool/.treehouse/demo-3a3ce5/1/demo was reassigned to task live-task (home /tmp/fm-lab.xXqQyp), which claimed that pool slot after this record was written; that slot is no longer stale-task's, so its processes, copy, and claim are left untouched and only stale-task's own cleanup runs.
+fm-captain-hold: origin stale-task has no completed captain-call inventory
+REFUSED: scout task stale-task has not passed the captain-call completion gate.
+Inventory its report and any visual review through bin/fm-captain-hold.sh before teardown.
+exit=1
+--- state/: live-task.meta stale-task.meta 
+--- claim: task=live-task home=/tmp/fm-lab.xXqQyp 
+--- slot checkout: claimant-file.txt present
+--- worker in slot alive: yes
+--- tmux windows: fm-live-task fm-stale-task 
+--- treehouse status:
+    
+    1     leased       /tmp/fm-lab.xXqQyp/pool/.treehouse/demo-3a3ce5/1/demo  (held by fm-lab)
+                       sleep (3889324)
+lab removed: yes

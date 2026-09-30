@@ -1,0 +1,65 @@
+slot=/tmp/fm-lab.MlDIkA/pool/.treehouse/demo-987306/1/demo
+=== BEFORE (target commit 65c3e01) ===
+--- state/: live-task.meta stale-task.meta 
+--- claim: task=live-task home=/tmp/fm-lab.MlDIkA 
+--- slot checkout: claimant-file.txt present
+--- worker in slot alive: yes
+--- tmux windows: fm-live-task fm-stale-task 
+--- treehouse status:
+    A new version of treehouse is available: v2.3.0 → v3.1.0
+    Run "treehouse update" to update
+    
+    1     leased       /tmp/fm-lab.MlDIkA/pool/.treehouse/demo-987306/1/demo  (held by fm-lab)
+                       sleep (3672747)
+
+=== $ fm-teardown.sh stale-task --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.MlDIkA
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  2 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+warning: task stale-task's recorded worktree /tmp/fm-lab.MlDIkA/pool/.treehouse/demo-987306/1/demo was reassigned to task live-task (home /tmp/fm-lab.MlDIkA), which claimed that pool slot after this record was written; that slot is no longer stale-task's, so its processes, copy, and claim are left untouched and only stale-task's own cleanup runs.
+teardown stale-task complete (window firstmate:fm-stale-task; pool slot /tmp/fm-lab.MlDIkA/pool/.treehouse/demo-987306/1/demo left to task live-task (home /tmp/fm-lab.MlDIkA), which it was reassigned to)
+Backlog: stale-task just finished (this home keeps no markdown backlog at /tmp/fm-lab.MlDIkA/data/backlog.md). Update /tmp/fm-lab.MlDIkA/data/backlog.md - move stale-task to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+exit=0
+
+=== AFTER stale-task teardown ===
+--- state/: live-task.meta 
+--- claim: task=live-task home=/tmp/fm-lab.MlDIkA 
+--- slot checkout: claimant-file.txt present
+--- worker in slot alive: yes
+--- tmux windows: fm-live-task 
+--- treehouse status:
+    A new version of treehouse is available: v2.3.0 → v3.1.0
+    Run "treehouse update" to update
+    
+    1     leased       /tmp/fm-lab.MlDIkA/pool/.treehouse/demo-987306/1/demo  (held by fm-lab)
+                       sleep (3672747)
+
+=== $ fm-teardown.sh live-task --force   (claimant, full teardown)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.MlDIkA
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+A new version of treehouse is available: v2.3.0 → v3.1.0
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+teardown live-task complete (window firstmate:fm-live-task, worktree /tmp/fm-lab.MlDIkA/pool/.treehouse/demo-987306/1/demo)
+Backlog: live-task just finished (this home keeps no markdown backlog at /tmp/fm-lab.MlDIkA/data/backlog.md). Update /tmp/fm-lab.MlDIkA/data/backlog.md - move live-task to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+exit=0
+
+=== AFTER live-task teardown ===
+--- state/: 
+/tmp/fm6184-setup.sh: line 26: /tmp/fm-lab.MlDIkA/pool/.treehouse/demo-987306/1/.fm-slot-owner: No such file or directory
+--- claim: <none>
+--- slot checkout: claimant-file.txt GONE
+--- worker in slot alive: no
+--- tmux windows: 
+--- treehouse status:
+    A new version of treehouse is available: v2.3.0 → v3.1.0
+    Run "treehouse update" to update
+    
+    1     available    /tmp/fm-lab.MlDIkA/pool/.treehouse/demo-987306/1/demo
+lab removed: yes

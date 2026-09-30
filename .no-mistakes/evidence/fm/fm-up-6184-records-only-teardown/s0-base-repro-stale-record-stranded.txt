@@ -1,0 +1,45 @@
+slot=/tmp/fm-lab.knNxm7/pool/.treehouse/demo-7307fd/1/demo
+=== BEFORE (base commit eb77f02) ===
+--- state/: live-task.meta stale-task.meta 
+--- claim: task=live-task home=/tmp/fm-lab.knNxm7 
+--- slot checkout: claimant-file.txt present
+--- worker in slot alive: yes
+--- tmux windows: fm-live-task fm-stale-task 
+--- treehouse status:
+    
+    1     leased       /tmp/fm-lab.knNxm7/pool/.treehouse/demo-7307fd/1/demo  (held by fm-lab)
+                       sleep (3698954)
+
+=== $ fm-teardown.sh stale-task 
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.knNxm7
+REFUSED: task stale-task's recorded worktree /tmp/fm-lab.knNxm7/pool/.treehouse/demo-7307fd/1/demo is also task live-task's recorded worktree.
+Returning that pool slot would kill live-task's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh stale-task; bin/fm-crew-state.sh live-task), then re-run teardown.
+exit=1
+
+=== $ fm-teardown.sh stale-task --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.knNxm7
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: task stale-task's recorded worktree /tmp/fm-lab.knNxm7/pool/.treehouse/demo-7307fd/1/demo is also task live-task's recorded worktree.
+Returning that pool slot would kill live-task's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh stale-task; bin/fm-crew-state.sh live-task), then re-run teardown.
+exit=1
+
+=== $ fm-teardown.sh live-task --force   (claimant blocked behind stale record)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.knNxm7
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: task live-task's recorded worktree /tmp/fm-lab.knNxm7/pool/.treehouse/demo-7307fd/1/demo is also task stale-task's recorded worktree.
+Returning that pool slot would kill stale-task's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh live-task; bin/fm-crew-state.sh stale-task), then re-run teardown.
+exit=1
+
+=== AFTER ===
+--- state/: live-task.meta stale-task.meta 
+--- claim: task=live-task home=/tmp/fm-lab.knNxm7 
+--- slot checkout: claimant-file.txt present
+--- worker in slot alive: yes
+--- tmux windows: fm-live-task fm-stale-task 
+--- treehouse status:
+    
+    1     leased       /tmp/fm-lab.knNxm7/pool/.treehouse/demo-7307fd/1/demo  (held by fm-lab)
+                       sleep (3698954)
