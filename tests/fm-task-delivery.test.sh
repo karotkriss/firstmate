@@ -1203,6 +1203,24 @@ an unknown mr-pipeline value|- fp [no-mistakes mr-pipeline=sometimes] - fixture 
 a misspelled mr-pipeline value|- fp [direct-PR mr-pipeline=noen] - fixture (added 2026-01-01)|noen|direct-PR off
 an empty mr-pipeline value|- fp [no-mistakes +yolo mr-pipeline=] - fixture (added 2026-01-01)|mr-pipeline=|no-mistakes on
 ROWS
+
+  # --mr-pipeline reads only its own token: a malformed forge binding, or a
+  # forge on local-only, still refuses the forms that read the forge but never
+  # changes the merge path's pipeline answer.
+  while IFS='|' read -r label registry expect; do
+    [ -n "$label" ] || continue
+    printf '%s\n' "$registry" > "$home/data/projects.md"
+    out=$(FM_HOME="$home" "$PROJECT_MODE" --mr-pipeline fp 2>/dev/null) \
+      || fail "$label: --mr-pipeline refused over a forge token it does not read"
+    [ "$out" = "$expect" ] || fail "$label: expected --mr-pipeline '$expect', got '$out'"
+    status=0
+    FM_HOME="$home" "$PROJECT_MODE" fp >/dev/null 2>&1 || status=$?
+    [ "$status" -eq 3 ] || fail "$label: the default form stopped refusing the malformed forge (status $status)"
+  done <<'ROWS'
+an unknown forge with no mr-pipeline token|- fp [no-mistakes forge=gitea] - fixture (added 2026-01-01)|required
+an empty forge beside mr-pipeline=none|- fp [no-mistakes forge= mr-pipeline=none] - fixture (added 2026-01-01)|none
+a forge on local-only|- fp [local-only forge=gerrit] - fixture (added 2026-01-01)|required
+ROWS
   pass "fm-project-mode: a malformed mr-pipeline binding refuses only under --mr-pipeline; other forms ignore it"
 }
 
