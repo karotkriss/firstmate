@@ -826,6 +826,22 @@ The current pending-composer ring contract is owned by `bin/fm-task-inbox-lib.sh
 Kimi was not installed on the verification machine; its receive path is the same one-line-plus-shell contract, and the portable ladder and enqueue regressions in `tests/fm-task-inbox.test.sh` and `tests/fm-send-inbox.test.sh` cover every harness-independent half.
 This guard is the refresh command after any harness upgrade; it spends a small number of real tokens per installed harness, reports an absent harness explicitly, and refuses a run that verified nothing.
 
+The doorbell now names the inbox only by its short `<task>.inbox` name and relies on the brief for the full path, so its length no longer grows with the home's depth.
+The guard therefore gives each worker the brief's steering-inbox sentence before the steer.
+It was re-run for that shape on 2026-09-30, on tmux 3.6, Linux (WSL2), with the same command:
+
+```text
+ok - claude (2.1.285 (Claude Code)): the doorbell reached a real worker, which acted and acked with the mv
+ok - codex (codex-cli 0.157.0): the doorbell reached a real worker, which acted and acked with the mv
+ok - opencode (1.18.33): the doorbell reached a real worker, which acted and acked with the mv
+# harness absent, not verified here: grok
+# harness absent, not verified here: kimi
+# harness absent, not verified here: muse
+```
+
+OpenCode needed `FM_SEND_INBOX_LIVE_TIMEOUT=560` because its configured model was still mid-turn at the default 240 seconds.
+Pi 0.87.1 was installed but not verified: its configured model returned an account error (`The 'gpt-5.6-sol' model is not supported when using Codex with a ChatGPT account`) before it read the inbox.
+
 ## Gemini
 
 The Gemini crewmate adapter was verified on 2026-09-04 with gemini-cli 0.58.0 on Linux, Node v24.20.0, tmux 3.4.
