@@ -609,11 +609,23 @@ fm_dod_nm_custody_returned() {  # <worktree>
 
 # 0 when <sha> is reachable from a ref that survives the disposable worktree:
 # any remote-tracking ref, or - for local-only - heads in the project clone.
+# A publishing mode's head is often pushed by a gate the project clone never
+# fetched from, so when no local ref holds it the worker copy's branch is
+# fetched from the project clone's origin (bounded, quiet) and the same ref
+# check runs again; a failed or timed-out fetch leaves the refusal standing.
 fm_dod_named_head_reachable_outside_worktree() {  # <worktree> <project> <mode> <sha>
-  local wt=$1 project=$2 mode=$3 sha=$4
+  local wt=$1 project=$2 mode=$3 sha=$4 branch
   fm_dod_ref_contains "$wt" refs/remotes "$sha" && return 0
   fm_dod_ref_contains "$project" refs/remotes "$sha" && return 0
-  [ "$mode" = local-only ] && fm_dod_ref_contains "$project" refs/heads "$sha"
+  if [ "$mode" = local-only ]; then
+    fm_dod_ref_contains "$project" refs/heads "$sha"
+    return
+  fi
+  [ -n "$project" ] && [ -d "$project" ] || return 1
+  branch=$(git -C "$wt" symbolic-ref -q --short HEAD 2>/dev/null) || return 1
+  GIT_TERMINAL_PROMPT=0 fm_run_timed 20 git -C "$project" fetch --quiet --no-tags origin \
+    "+refs/heads/$branch:refs/remotes/origin/$branch" >/dev/null 2>&1 || return 1
+  fm_dod_ref_contains "$project" refs/remotes "$sha"
 }
 
 # 0 when <line> is not a ship done: to gate, when it names the task's recorded
