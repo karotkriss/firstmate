@@ -1912,13 +1912,16 @@ test_gitlab_reports_every_failing_condition() {
   pass "fm-pr-merge reports every failing GitLab condition, not only the first"
 }
 
-# write_mr_pipeline_registry <case_dir> <token>: a throwaway data/projects.md
-# registering the token on "project", the basename make_case always records as
-# project= in the task's metadata.
+# write_mr_pipeline_registry <case_dir> <token> [origin]: a throwaway
+# data/projects.md registering the token on "project", the basename make_case
+# always records as project= in the task's metadata, and that project's clone
+# with the given origin (by default the merge request's own project).
 write_mr_pipeline_registry() {
-  local case_dir=$1 token=$2
+  local case_dir=$1 token=$2 origin=${3:-git@$MR_HOST:$MR_PATH.git}
   printf '%s\n' "- project [$token] - throwaway registry entry (added 2026-09-29)" \
     > "$case_dir/home/data/projects.md"
+  git init -q "$case_dir/project"
+  git -C "$case_dir/project" remote add origin "$origin"
 }
 
 test_gitlab_mr_pipeline_none_merges_without_a_pipeline() {
@@ -2012,6 +2015,29 @@ test_gitlab_mr_pipeline_requires_registered_project_binding() {
   assert_grep 'the head pipeline status is "none", not success' "$case_dir/stderr" \
     "gitlab-mr-pipeline-no-project: a registered token elsewhere must not apply without a project binding"
   pass "fm-pr-merge requires a task's own project= binding before honoring a registered mr-pipeline token"
+}
+
+test_gitlab_mr_pipeline_none_requires_matching_origin() {
+  local case_dir rc
+  # Same basename, different group: the registered project is not this merge
+  # request's project, so its waiver must not apply here.
+  case_dir=$(make_gitlab_case gitlab-mr-pipeline-other-origin pipeline=null)
+  write_mr_pipeline_registry "$case_dir" mr-pipeline=none "https://$MR_HOST/group/other/project.git"
+
+  set +e
+  run_pr_merge "$case_dir" task-x1 "$MR_URL" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 1 "$rc" "gitlab-mr-pipeline-other-origin: another project's mr-pipeline=none should not waive this request's pipeline"
+  assert_grep "its origin is \"$MR_HOST/group/other/project\", not this merge request's project $MR_HOST/$MR_PATH" "$case_dir/stderr" \
+    "gitlab-mr-pipeline-other-origin: the mismatched project identities were not named"
+  assert_grep 'the head pipeline status is "none", not success' "$case_dir/stderr" \
+    "gitlab-mr-pipeline-other-origin: the ordinary pipeline requirement was not applied"
+  [ -z "$(glab_merge_line "$case_dir/glab.log")" ] \
+    || fail "gitlab-mr-pipeline-other-origin: a merge was attempted under another project's waiver"
+  pass "fm-pr-merge applies mr-pipeline=none only when the project's origin is the merge request's own project"
 }
 
 test_gitlab_malformed_mr_pipeline_registry_refuses() {
@@ -2536,6 +2562,7 @@ test_gitlab_mr_pipeline_none_still_requires_success_when_present
 test_gitlab_mr_pipeline_none_still_requires_head_match_when_present
 test_gitlab_mr_pipeline_none_still_requires_other_conditions
 test_gitlab_mr_pipeline_requires_registered_project_binding
+test_gitlab_mr_pipeline_none_requires_matching_origin
 test_gitlab_malformed_mr_pipeline_registry_refuses
 test_gitlab_stale_recorded_head_is_reported
 test_gitlab_unreadable_state_refuses

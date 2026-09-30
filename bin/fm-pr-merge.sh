@@ -91,7 +91,8 @@
 # exact current head commit. The pipeline condition is skipped only when the
 # task's project is registered mr-pipeline=none in data/projects.md (a
 # captain-confirmed fact that the project's merge requests never get a
-# pipeline at all) and the merge request has no head pipeline whatsoever;
+# pipeline at all), that project's clone has this merge request's own
+# project as its origin, and the merge request has no head pipeline whatsoever;
 # GitLab's own mergeable read still has to hold, and a pipeline that does
 # exist at the head is still required to have succeeded there, token or not
 # (bin/fm-project-mode.sh's header owns the token). Every failing condition is
@@ -459,10 +460,13 @@ fi
 # attempted. A task with no project= line, or a project the registry has no
 # token for, keeps the default "required" and today's behavior is unchanged;
 # the registry lookup is the captain's confirmed project fact, never a live
-# guess from the merge request itself.
+# guess from the merge request itself. The registry names a local clone, not
+# a forge project, so a none posture applies only when that clone's origin is
+# the merge request's own host/path; any other origin, or none readable, keeps
+# "required", so one project's waiver never lands another project's request.
 FM_PR_GITLAB_MR_PIPELINE=required
 resolve_gitlab_mr_pipeline_posture() {
-  local project_path project_name
+  local project_path project_name origin
   project_path=$(sed -n 's/^project=//p' "$META" | head -n 1)
   [ -n "$project_path" ] || return 0
   project_name=$(basename "$project_path")
@@ -470,6 +474,20 @@ resolve_gitlab_mr_pipeline_posture() {
     "$FM_ROOT/bin/fm-project-mode.sh" --mr-pipeline "$project_name" >/dev/null || true
     echo "error: task $ID cannot merge: the registry entry for $project_name does not resolve to a delivery posture (see the refusal above); correct data/projects.md and merge again" >&2
     return 1
+  fi
+  [ "$FM_PR_GITLAB_MR_PIPELINE" = none ] || return 0
+  # https://host/path, ssh://[user@]host[:port]/path and [user@]host:path,
+  # each with an optional .git suffix, reduce to host/path.
+  origin=$(git -C "$project_path" remote get-url origin 2>/dev/null || true)
+  origin=${origin%.git}
+  case "$origin" in
+    *://*) origin=${origin#*://}; origin=${origin#*@}
+      origin="${origin%%[:/]*}/${origin#*/}" ;;
+    *:*) origin=${origin#*@}; origin="${origin%%:*}/${origin#*:}" ;;
+  esac
+  if [ "$origin" != "$PR_HOST/$PR_PATH" ]; then
+    echo "note: $project_name is registered mr-pipeline=none, but its origin is \"${origin:-unreadable}\", not this merge request's project $PR_HOST/$PR_PATH; the waiver does not apply and the head pipeline is required" >&2
+    FM_PR_GITLAB_MR_PIPELINE=required
   fi
 }
 

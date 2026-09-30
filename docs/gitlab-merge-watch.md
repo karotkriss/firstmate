@@ -251,7 +251,7 @@ $ echo $?
 99
 ```
 
-Without the token, or without the task's own `project=` line resolving to that registry entry, the refusal above is unchanged: the pipeline conditions are dropped only for the exact project the captain confirmed, never inferred from the merge request's own live state.
+Without the token, without the task's own `project=` line resolving to that registry entry, or when that project's clone has an origin other than the merge request's own project, the refusal above is unchanged: the pipeline conditions are dropped only for the exact project the captain confirmed, never inferred from the merge request's own live state.
 
 A recorded `pr_head=` that no longer matches the live head is reported, and the live head is what gets verified.
 The stale value below was written into the task record by hand, because a GitLab task never records one on its own:
