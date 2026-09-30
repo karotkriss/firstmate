@@ -1,0 +1,20 @@
+=== data/projects.md: - fp [no-mistakes] - lab (added 2026-09-30)
+$ fm-project-mode.sh  fp -> exit=0: no-mistakes off
+$ fm-project-mode.sh --forge fp -> exit=0: none
+$ fm-project-mode.sh --branch-prefix fp -> exit=0: fm/
+$ fm-project-mode.sh --mr-pipeline fp -> exit=0: required
+=== data/projects.md: - fp [direct-PR +yolo mr-pipeline=none branch=x/] - lab (added 2026-09-30)
+$ fm-project-mode.sh  fp -> exit=0: direct-PR on
+$ fm-project-mode.sh --forge fp -> exit=0: none
+$ fm-project-mode.sh --branch-prefix fp -> exit=0: x/
+$ fm-project-mode.sh --mr-pipeline fp -> exit=0: none
+=== data/projects.md: - fp [no-mistakes mr-pipeline=nonee] - lab (added 2026-09-30)
+$ fm-project-mode.sh  fp -> exit=0: no-mistakes off
+$ fm-project-mode.sh --forge fp -> exit=0: none
+$ fm-project-mode.sh --branch-prefix fp -> exit=0: fm/
+$ fm-project-mode.sh --mr-pipeline fp -> exit=3: refused: unknown mr-pipeline "nonee" registered for fp in <LAB>/data/projects.md; the accepted value is mr-pipeline=none, or no mr-pipeline token at all for a project whose merge requests get a pipeline; correct the registry entry
+=== data/projects.md: - fp [no-mistakes forge=gitea] - lab (added 2026-09-30)
+$ fm-project-mode.sh  fp -> exit=3: refused: unknown forge "gitea" registered for fp in <LAB>/data/projects.md; the accepted value is forge=gerrit, or no forge token at all for a forge whose pull requests no-mistakes already drives; correct the registry entry
+$ fm-project-mode.sh --forge fp -> exit=3: refused: unknown forge "gitea" registered for fp in <LAB>/data/projects.md; the accepted value is forge=gerrit, or no forge token at all for a forge whose pull requests no-mistakes already drives; correct the registry entry
+$ fm-project-mode.sh --branch-prefix fp -> exit=0: fm/
+$ fm-project-mode.sh --mr-pipeline fp -> exit=0: required

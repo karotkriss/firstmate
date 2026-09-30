@@ -1,0 +1,242 @@
+=== S1 mr-pipeline=none, no MR pipeline, GitLab says mergeable -> merges, bound to verified head
+--- data/projects.md: - project [no-mistakes mr-pipeline=none] - lab (added 2026-09-30)
+--- emulated MR: {"head":"bfa8a3837b683872f3a1b2cfa8e7969644fc9549","pipeline":null}
+$ bin/fm-pr-merge.sh task-x1 https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7 
+armed: state/task-x1.check.sh
+verified: https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7 is open and mergeable; the project registers no merge-request pipeline (mr-pipeline=none) and GitLab reports it mergeable at head bfa8a3837b683872f3a1b2cfa8e7969644fc9549
+✓ Merged!
+https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+exit=0
+--- GitLab API requests received:
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true 
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7/approval_state 
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7 
+    PUT /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7/merge {"sha":"bfa8a3837b683872f3a1b2cfa8e7969644fc9549"}
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true 
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7/approval_state 
+--- MR state after: merged
+--- task meta after:
+    window=fm-task-x1
+    worktree=<LAB>/projects/project
+    project=<LAB>/projects/project
+    kind=ship
+    mode=no-mistakes
+    pr=https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+=== S2 baseline: no token, no MR pipeline -> refused exactly as before
+--- data/projects.md: - project [no-mistakes] - lab (added 2026-09-30)
+--- emulated MR: {"head":"719bee3a7d1de74a31b7c64199f146971b3f045c","pipeline":null}
+$ bin/fm-pr-merge.sh task-x1 https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7 
+armed: state/task-x1.check.sh
+error: refusing to merge https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+  - the head pipeline status is "none", not success
+  - the head pipeline ran at "none", not at the current head 719bee3a7d1de74a31b7c64199f146971b3f045c
+exit=1
+--- GitLab API requests received:
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true 
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7/approval_state 
+--- MR state after: opened
+--- task meta after:
+    window=fm-task-x1
+    worktree=<LAB>/projects/project
+    project=<LAB>/projects/project
+    kind=ship
+    mode=no-mistakes
+    pr=https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+=== S2b baseline: project not registered at all, no MR pipeline -> refused exactly as before
+--- data/projects.md: (none)
+--- emulated MR: {"head":"7b4c1863e558aaaa26f2f3a7880fb4ce0370da84","pipeline":null}
+$ bin/fm-pr-merge.sh task-x1 https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7 
+armed: state/task-x1.check.sh
+error: refusing to merge https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+  - the head pipeline status is "none", not success
+  - the head pipeline ran at "none", not at the current head 7b4c1863e558aaaa26f2f3a7880fb4ce0370da84
+exit=1
+--- GitLab API requests received:
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true 
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7/approval_state 
+--- MR state after: opened
+--- task meta after:
+    window=fm-task-x1
+    worktree=<LAB>/projects/project
+    project=<LAB>/projects/project
+    kind=ship
+    mode=no-mistakes
+    pr=https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+=== S2c baseline: no token, successful pipeline at head -> merges as before
+--- data/projects.md: - project [no-mistakes] - lab (added 2026-09-30)
+--- emulated MR: {"head":"7a9db1874ca5c6e53c79f9d132e9b9e3ebe5b4dd","pipeline":{"id":9,"sha":"7a9db1874ca5c6e53c79f9d132e9b9e3ebe5b4dd","status":"success"}}
+$ bin/fm-pr-merge.sh task-x1 https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7 
+armed: state/task-x1.check.sh
+verified: https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7 is open and mergeable, with a successful pipeline at head 7a9db1874ca5c6e53c79f9d132e9b9e3ebe5b4dd
+✓ Pipeline succeeded.
+✓ Merged!
+https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+exit=0
+--- GitLab API requests received:
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true 
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7/approval_state 
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7 
+    PUT /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7/merge {"merge_when_pipeline_succeeds":true,"sha":"7a9db1874ca5c6e53c79f9d132e9b9e3ebe5b4dd"}
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true 
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7/approval_state 
+--- MR state after: merged
+--- task meta after:
+    window=fm-task-x1
+    worktree=<LAB>/projects/project
+    project=<LAB>/projects/project
+    kind=ship
+    mode=no-mistakes
+    pr=https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+=== S3 mr-pipeline=none but a FAILED pipeline exists at head -> refused
+--- data/projects.md: - project [no-mistakes mr-pipeline=none] - lab (added 2026-09-30)
+--- emulated MR: {"head":"cfc383bd7359da08259c38fb458cc7acc2cc77be","pipeline":{"id":9,"sha":"cfc383bd7359da08259c38fb458cc7acc2cc77be","status":"failed"}}
+$ bin/fm-pr-merge.sh task-x1 https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7 
+armed: state/task-x1.check.sh
+error: refusing to merge https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+  - the head pipeline status is "failed", not success
+exit=1
+--- GitLab API requests received:
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true 
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7/approval_state 
+--- MR state after: opened
+--- task meta after:
+    window=fm-task-x1
+    worktree=<LAB>/projects/project
+    project=<LAB>/projects/project
+    kind=ship
+    mode=no-mistakes
+    pr=https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+=== S4 mr-pipeline=none but pipeline ran at a stale head -> refused
+--- data/projects.md: - project [no-mistakes mr-pipeline=none] - lab (added 2026-09-30)
+--- emulated MR: {"head":"d77fb4b1421ba6f5ab140aecfbb4717a89c672ee","pipeline":{"id":9,"sha":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","status":"success"}}
+$ bin/fm-pr-merge.sh task-x1 https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7 
+armed: state/task-x1.check.sh
+error: refusing to merge https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+  - the head pipeline ran at "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", not at the current head d77fb4b1421ba6f5ab140aecfbb4717a89c672ee
+exit=1
+--- GitLab API requests received:
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true 
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7/approval_state 
+--- MR state after: opened
+--- task meta after:
+    window=fm-task-x1
+    worktree=<LAB>/projects/project
+    project=<LAB>/projects/project
+    kind=ship
+    mode=no-mistakes
+    pr=https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+=== S5 mr-pipeline=none, no pipeline, GitLab says need_rebase -> refused, pipeline not mentioned
+--- data/projects.md: - project [no-mistakes mr-pipeline=none] - lab (added 2026-09-30)
+--- emulated MR: {"head":"5e09b27934868bf44a0a3809df5e9e8a39131bd2","pipeline":null,"detail":"need_rebase"}
+$ bin/fm-pr-merge.sh task-x1 https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7 
+armed: state/task-x1.check.sh
+error: refusing to merge https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+  - detailed_merge_status is "need_rebase", not mergeable
+exit=1
+--- GitLab API requests received:
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true 
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7/approval_state 
+--- MR state after: opened
+--- task meta after:
+    window=fm-task-x1
+    worktree=<LAB>/projects/project
+    project=<LAB>/projects/project
+    kind=ship
+    mode=no-mistakes
+    pr=https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+=== S6 mr-pipeline=none, no pipeline, a push lands between verify and merge -> GitLab rejects the stale sha
+--- data/projects.md: - project [no-mistakes mr-pipeline=none] - lab (added 2026-09-30)
+--- emulated MR: {"head":"f9a6985b03825503541fb9a57ec8bacfadb299e5","pipeline":null,"push_before_merge":"cccccccccccccccccccccccccccccccccccccccc"}
+$ bin/fm-pr-merge.sh task-x1 https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7 
+armed: state/task-x1.check.sh
+verified: https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7 is open and mergeable; the project registers no merge-request pipeline (mr-pipeline=none) and GitLab reports it mergeable at head f9a6985b03825503541fb9a57ec8bacfadb299e5
+All attempts fail:
+#1: PUT http://127.0.0.1:47149/api/v4/projects/group/subgroup/project/merge_requests/7/merge: 409 {message: SHA does not match HEAD of source branch}
+
+exit=1
+--- GitLab API requests received:
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true 
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7/approval_state 
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7 
+    PUT /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7/merge {"sha":"f9a6985b03825503541fb9a57ec8bacfadb299e5"}
+--- MR state after: opened
+--- task meta after:
+    window=fm-task-x1
+    worktree=<LAB>/projects/project
+    project=<LAB>/projects/project
+    kind=ship
+    mode=no-mistakes
+    pr=https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+=== S7 malformed token mr-pipeline=nonee, no pipeline -> merge refused, nothing sent to GitLab merge
+--- data/projects.md: - project [no-mistakes mr-pipeline=nonee] - lab (added 2026-09-30)
+--- emulated MR: {"head":"ed27f587a3236aaef8a3e16f2244ea6f8894a764","pipeline":null}
+$ bin/fm-pr-merge.sh task-x1 https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7 
+armed: state/task-x1.check.sh
+refused: unknown mr-pipeline "nonee" registered for project in <LAB>/data/projects.md; the accepted value is mr-pipeline=none, or no mr-pipeline token at all for a project whose merge requests get a pipeline; correct the registry entry
+error: task task-x1 cannot merge: the registry entry for project does not resolve to a delivery posture (see the refusal above); correct data/projects.md and merge again
+exit=1
+--- GitLab API requests received:
+--- MR state after: opened
+--- task meta after:
+    window=fm-task-x1
+    worktree=<LAB>/projects/project
+    project=<LAB>/projects/project
+    kind=ship
+    mode=no-mistakes
+    pr=https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+=== S7b empty token mr-pipeline=, no pipeline -> merge refused
+--- data/projects.md: - project [no-mistakes mr-pipeline=] - lab (added 2026-09-30)
+--- emulated MR: {"head":"81abc4f9f0271b4ff2d41e9676ea46db6d5ab2bc","pipeline":null}
+$ bin/fm-pr-merge.sh task-x1 https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7 
+armed: state/task-x1.check.sh
+refused: empty mr-pipeline binding "mr-pipeline=" registered for project in <LAB>/data/projects.md; the accepted value is mr-pipeline=none, or no mr-pipeline token at all for a project whose merge requests get a pipeline; correct the registry entry
+error: task task-x1 cannot merge: the registry entry for project does not resolve to a delivery posture (see the refusal above); correct data/projects.md and merge again
+exit=1
+--- GitLab API requests received:
+--- MR state after: opened
+--- task meta after:
+    window=fm-task-x1
+    worktree=<LAB>/projects/project
+    project=<LAB>/projects/project
+    kind=ship
+    mode=no-mistakes
+    pr=https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+=== S8 no mr-pipeline token but malformed forge=gitea, successful pipeline -> GitLab merge unchanged (merges)
+--- data/projects.md: - project [no-mistakes forge=gitea] - lab (added 2026-09-30)
+--- emulated MR: {"head":"1d2895248156f1b448e71ef3713d14f8098e8016","pipeline":{"id":9,"sha":"1d2895248156f1b448e71ef3713d14f8098e8016","status":"success"}}
+$ bin/fm-pr-merge.sh task-x1 https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7 
+armed: state/task-x1.check.sh
+verified: https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7 is open and mergeable, with a successful pipeline at head 1d2895248156f1b448e71ef3713d14f8098e8016
+✓ Pipeline succeeded.
+✓ Merged!
+https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+exit=0
+--- GitLab API requests received:
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true 
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7/approval_state 
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7 
+    PUT /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7/merge {"merge_when_pipeline_succeeds":true,"sha":"1d2895248156f1b448e71ef3713d14f8098e8016"}
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7?include_diverged_commits_count=true&include_rebase_in_progress=true&render_html=true 
+    GET /api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests/7/approval_state 
+--- MR state after: merged
+--- task meta after:
+    window=fm-task-x1
+    worktree=<LAB>/projects/project
+    project=<LAB>/projects/project
+    kind=ship
+    mode=no-mistakes
+    pr=https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7
+=== S9 mr-pipeline=none does not unlock per-check waivers: --allow-missing still refused on GitLab
+--- data/projects.md: - project [no-mistakes mr-pipeline=none] - lab (added 2026-09-30)
+--- emulated MR: {"head":"8c1000beedd0c5d9b944bba7708337f5ef8becaf","pipeline":null}
+$ bin/fm-pr-merge.sh task-x1 https://gitlab.lab.test/group/subgroup/project/-/merge_requests/7 --allow-missing ci
+error: --allow-missing does not apply to GitLab; a merge there is governed by the head pipeline or the project's registered mr-pipeline=none posture, never a per-check waiver
+exit=2
+--- GitLab API requests received:
+--- MR state after: opened
+--- task meta after:
+    window=fm-task-x1
+    worktree=<LAB>/projects/project
+    project=<LAB>/projects/project
+    kind=ship
+    mode=no-mistakes
