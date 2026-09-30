@@ -98,23 +98,23 @@
 # drops the gate. Other annotation tokens are ignored, as they always were, keyed
 # ones included: a `<key>=<value>` token whose key is neither `forge`, `branch`,
 # nor `mr-pipeline` resolves as it did before either existed, and in the mode
-# slot it is read as an unknown mode. A key one or two edits from `forge` or
-# `mr-pipeline` (such as `forg=` or `mr-pipline=`) is still ignored, with one
-# stderr warning naming the token and the correct spelling. The two refusals are
-# a malformed forge or mr-pipeline binding - a `forge=` or `mr-pipeline=` token
-# whose value is empty or outside its closed set - which is REFUSED in the
-# default, --forge, and --mr-pipeline output forms: nothing on stdout, exit
-# status 3, the token named. Resolving a malformed forge to "no registered
-# forge" would hand a Gerrit project the pull-request contract the binding
-# exists to prevent; resolving a malformed mr-pipeline to "required" would hide
-# a typo behind the safe default instead of surfacing it. local-only with a
-# forge is refused the same way (mr-pipeline carries no such conflict, since it
-# is meaningful only where a forge merge request or pull request can exist, and
-# GitHub ignores it either way). --branch-prefix does not make either check: it
-# answers only the registered prefix, and a prefix is orthogonal to both
-# bindings, so it prints even when one is malformed; every path that reads the
-# forge or mr-pipeline binding (default, --forge, --mr-pipeline, and spawn's
-# forge-agreement check) still refuses.
+# slot it is read as an unknown mode. A key one or two edits from `forge` (such
+# as `forg=` or `Forge=`) is still ignored, with one stderr warning naming the
+# token and the forge=gerrit spelling. The one refusal is a malformed forge
+# binding - a `forge=` token whose value is empty or outside the closed set -
+# which is REFUSED in the default, --forge, and --mr-pipeline output forms:
+# nothing on stdout, exit status 3, the token named. Resolving it to "no
+# registered forge" would hand a Gerrit project the pull-request contract the
+# binding exists to prevent. local-only with a forge is refused the same way.
+# --branch-prefix does not make that check: it answers only the registered
+# prefix, and a prefix is orthogonal to the forge binding, so it prints even
+# when the forge token is malformed; every path that reads the forge binding
+# (default, --forge, and spawn's forge-agreement check) still refuses.
+# A malformed mr-pipeline binding - an `mr-pipeline=` token whose value is
+# empty or outside its closed set - is refused the same way, but only under
+# --mr-pipeline, the one form that reads it: resolving it to "required" there
+# would hide a typo behind the safe default. Every other form ignores the token
+# like any other key, so a merge-time-only typo never blocks spawn or sync.
 # Usage: fm-project-mode.sh [--raw|--branch-prefix|--forge|--mr-pipeline] <project-name>
 set -eu
 
@@ -145,8 +145,8 @@ if [ ! -f "$REG" ]; then
   exit 0
 fi
 
-# awk emits one "nearforge <token>" or "nearmr <token>" line per keyed token
-# whose key is a near miss of `forge` or `mr-pipeline` respectively, then
+# awk emits one "near <token>" line per keyed token whose key is a near miss of
+# `forge`, then
 # "posture <mode> <yolo> <forge> <mr-pipeline> <branch-prefix>" (forge is `none`
 # or the whole `forge=<value>` token; mr-pipeline is `required` or the whole
 # `mr-pipeline=<value>` token; branch-prefix is the raw prefix, defaulting to
@@ -187,8 +187,8 @@ parsed=$(awk -v n="$NAME" '
       # Tokens are order-independent: +yolo, branch=<prefix>, forge=<value>, and
       # mr-pipeline=<value> are recognized by their own shape wherever they
       # appear, keyed tokens that are none of those are ignored (with a
-      # near-miss warning for whichever spelling is closer), and the first
-      # token left over is the mode.
+      # near-miss warning for the forge spelling), and the first token left
+      # over is the mode.
       mode_set = 0
       for (j=1; j<=k; j++) {
         if (a[j]=="+yolo") { yolo="on"; continue }
@@ -197,10 +197,8 @@ parsed=$(awk -v n="$NAME" '
         if (a[j] ~ /^mr-pipeline=/) { mrpipeline = a[j]; continue }
         if (a[j] ~ /^[^=]+=/) {
           key = substr(a[j], 1, index(a[j], "=") - 1);
-          ef = dist(key, "forge");
-          em = dist(key, "mr-pipeline");
-          if (ef <= em) { if (ef >= 1 && ef <= 2) print "nearforge", a[j] }
-          else { if (em >= 1 && em <= 2) print "nearmr", a[j] }
+          e = dist(key, "forge");
+          if (e >= 1 && e <= 2) print "near", a[j];
           if (mode_set == 0) { mode = a[j]; mode_set = 1 }
           continue
         }
@@ -226,8 +224,7 @@ fi
 posture=
 while IFS=' ' read -r kind rest; do
   case "$kind" in
-    nearforge) echo "warn: ignoring \"$rest\" registered for $NAME in $REG; it is not a forge binding, and the forge binding is spelled forge=gerrit" >&2 ;;
-    nearmr) echo "warn: ignoring \"$rest\" registered for $NAME in $REG; it is not an mr-pipeline binding, and the mr-pipeline binding is spelled mr-pipeline=none" >&2 ;;
+    near) echo "warn: ignoring \"$rest\" registered for $NAME in $REG; it is not a forge binding, and the forge binding is spelled forge=gerrit" >&2 ;;
     posture) posture=$rest ;;
   esac
 done <<EOF
@@ -263,18 +260,16 @@ if [ "$forge" != none ] && [ "$mode" = local-only ]; then
   echo "refused: $NAME is registered local-only with forge=$forge in $REG; local-only publishes nothing, so a forge has no meaning there, and its landing would fast-forward local main with content the review server has never seen; register no-mistakes or direct-PR to publish through the forge, or drop the forge token to keep the project local" >&2
   exit 3
 fi
-case "$mrpipeline" in
-  required|mr-pipeline=none) mrpipeline=${mrpipeline#mr-pipeline=} ;;
-  mr-pipeline=)
-    echo "refused: empty mr-pipeline binding \"mr-pipeline=\" registered for $NAME in $REG; the accepted value is mr-pipeline=none, or no mr-pipeline token at all for a project whose merge requests get a pipeline; correct the registry entry" >&2
-    exit 3 ;;
-  *)
-    echo "refused: unknown mr-pipeline \"${mrpipeline#mr-pipeline=}\" registered for $NAME in $REG; the accepted value is mr-pipeline=none, or no mr-pipeline token at all for a project whose merge requests get a pipeline; correct the registry entry" >&2
-    exit 3 ;;
-esac
 if [ "$WANT_MR_PIPELINE" -eq 1 ]; then
-  echo "$mrpipeline"
-  exit 0
+  case "$mrpipeline" in
+    required|mr-pipeline=none) echo "${mrpipeline#mr-pipeline=}"; exit 0 ;;
+    mr-pipeline=)
+      echo "refused: empty mr-pipeline binding \"mr-pipeline=\" registered for $NAME in $REG; the accepted value is mr-pipeline=none, or no mr-pipeline token at all for a project whose merge requests get a pipeline; correct the registry entry" >&2
+      exit 3 ;;
+    *)
+      echo "refused: unknown mr-pipeline \"${mrpipeline#mr-pipeline=}\" registered for $NAME in $REG; the accepted value is mr-pipeline=none, or no mr-pipeline token at all for a project whose merge requests get a pipeline; correct the registry entry" >&2
+      exit 3 ;;
+  esac
 fi
 if [ "$WANT_FORGE" -eq 1 ]; then
   echo "$forge"
