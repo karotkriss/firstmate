@@ -466,7 +466,8 @@ resolve_gitlab_mr_pipeline_posture() {
   project_path=$(sed -n 's/^project=//p' "$META" | head -n 1)
   [ -n "$project_path" ] || return 0
   project_name=$(basename "$project_path")
-  if ! FM_PR_GITLAB_MR_PIPELINE=$("$FM_ROOT/bin/fm-project-mode.sh" --mr-pipeline "$project_name"); then
+  if ! FM_PR_GITLAB_MR_PIPELINE=$("$FM_ROOT/bin/fm-project-mode.sh" --mr-pipeline "$project_name" 2>/dev/null); then
+    "$FM_ROOT/bin/fm-project-mode.sh" --mr-pipeline "$project_name" >/dev/null || true
     echo "error: task $ID cannot merge: the registry entry for $project_name does not resolve to a delivery posture (see the refusal above); correct data/projects.md and merge again" >&2
     return 1
   fi

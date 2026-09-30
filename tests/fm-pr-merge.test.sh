@@ -1748,6 +1748,8 @@ test_gitlab_url_resolves_and_merges() {
     || fail "gitlab-merges: unexpected merge invocation: '$merge_line'"
   assert_grep "successful pipeline at head $MR_HEAD" "$case_dir/stderr" \
     "gitlab-merges: the verified head was not reported"
+  assert_no_grep "registry" "$case_dir/stderr" \
+    "gitlab-merges: an unregistered project's registry warnings leaked into the merge output"
   [ ! -s "$case_dir/gh-axi.log" ] || fail "gitlab-merges: a merge request reached the GitHub CLI"
   pass "fm-pr-merge merges a GitLab merge request through glab instead of refusing it"
 }
