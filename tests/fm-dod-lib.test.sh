@@ -402,6 +402,25 @@ test_pushed_unfetched_head_is_accepted_after_fetch() {
   pass "a pushed head the project clone had not fetched is accepted after a fetch"
 }
 
+test_gitlab_merge_request_head_is_accepted_after_fetch() {
+  local repo wt sha
+  repo="$TMP_ROOT/merge-request-repo"
+  wt="$TMP_ROOT/merge-request-wt"
+  fm_git_worktree "$repo" "$wt" fm/merge-request
+  git -C "$wt" commit -q --allow-empty -m 'fix pushed from a fork'
+  sha=$(git -C "$wt" rev-parse HEAD)
+  git -C "$wt" push -q "$repo.origin.git" HEAD:refs/merge-requests/7/head
+  git -C "$repo.origin.git" rev-parse -q --verify refs/heads/fm/merge-request >/dev/null \
+    && fail "setup: the source branch exists on origin"
+  [ -z "$(git -C "$repo" for-each-ref --contains="$sha" refs/remotes)" ] \
+    || fail "setup: the project clone already tracks the merge-request head"
+  accept_done ship no-mistakes "$wt" "$repo" "done: PR https://gitlab.example.test/o/r/-/merge_requests/7 checks green" \
+    || fail "a GitLab merge-request head without an origin source branch was refused"
+  assert_equals "$sha" "$(git -C "$repo" rev-parse refs/remotes/origin/merge-requests/7/head)" \
+    "the gate did not fetch the GitLab merge-request head into the project clone"
+  pass "a GitLab merge-request head is accepted after a fetch"
+}
+
 test_branch_behind_unpushed_head_is_refused_after_fetch() {
   local repo wt sha reason rc
   repo="$TMP_ROOT/behind-repo"
@@ -448,6 +467,7 @@ test_no_mistakes_prevalidation_done_is_not_gated
 test_remote_containing_named_head_is_accepted
 test_moved_branch_without_named_head_is_refused
 test_pushed_unfetched_head_is_accepted_after_fetch
+test_gitlab_merge_request_head_is_accepted_after_fetch
 test_branch_behind_unpushed_head_is_refused_after_fetch
 test_unreachable_remote_still_refuses
 test_free_text_sha_is_not_the_named_head
