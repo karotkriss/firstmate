@@ -1,0 +1,46 @@
+=== [fix 050cd2a] case green-pushed (branch fm/green-pushed, MR !11, head 564475090f61)
+--- origin holds: refs/heads/fm/green-pushed=564475090f61 refs/merge-requests/11/head=564475090f61 
+--- project clone tracking refs containing head before: []
+$ bin/fm-pr-check.sh green-pushed https://gitlab.example.test/grp/app/-/merge_requests/11
+    ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    ●  WATCHER DOWN - SUPERVISION IS OFF
+    ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+    ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+    ●  This is a supervision warning only; the guarded operation WILL still run.
+    ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+    ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    armed: state/green-pushed.check.sh
+--- exit=0 elapsed=1.1s
+--- meta pr= line: [pr=https://gitlab.example.test/grp/app/-/merge_requests/11]  check script: present
+--- project clone tracking refs containing head after: [refs/remotes/origin/fm/green-pushed ]
+
+=== [fix 050cd2a] case unpushed-tip (branch fm/unpushed-tip, MR !12, head c2c2ec95eab5)
+--- origin holds: refs/heads/fm/unpushed-tip=1596200e96e6 refs/merge-requests/12/head=1596200e96e6 
+--- project clone tracking refs containing head before: []
+$ bin/fm-pr-check.sh unpushed-tip https://gitlab.example.test/grp/app/-/merge_requests/12
+    WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+    error: named head c2c2ec95eab5a6416f11ea7fcb4259f16392995a is unreachable outside the worker copy
+--- exit=1 elapsed=0.4s
+--- meta pr= line: []  check script: absent
+--- project clone tracking refs containing head after: []
+
+=== [fix 050cd2a] case never-pushed (branch fm/never-pushed, MR !13, head 38a3ded299f8)
+--- origin holds: 
+--- project clone tracking refs containing head before: []
+$ bin/fm-pr-check.sh never-pushed https://gitlab.example.test/grp/app/-/merge_requests/13
+    WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+    error: named head 38a3ded299f862b97d38ff5169c1ddde526d047e is unreachable outside the worker copy
+--- exit=1 elapsed=0.4s
+--- meta pr= line: []  check script: absent
+--- project clone tracking refs containing head after: []
+
+=== [fix 050cd2a] case hung-origin (branch fm/hung-origin, MR !14, head 3ae981538916)
+--- origin holds: refs/heads/fm/hung-origin=3ae981538916 refs/merge-requests/14/head=3ae981538916 
+--- project clone tracking refs containing head before: []
+$ bin/fm-pr-check.sh hung-origin https://gitlab.example.test/grp/app/-/merge_requests/14
+    WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+    error: named head 3ae981538916b5a1a7a0f354a04def805360c027 is unreachable outside the worker copy
+--- exit=1 elapsed=5.4s
+--- meta pr= line: []  check script: absent
+--- project clone tracking refs containing head after: []
+
