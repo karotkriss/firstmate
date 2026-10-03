@@ -1,0 +1,21 @@
+### Lab 2: .tasks.toml [markdown] archive = "records/retired.md"; tasks-axi prune wrote archive there
+# held-p1: blocker blk-x1 Done in configured archive -> expect resolved/live
+# held-q2: blk-y2 [x] in archive but re-added open in backlog -> expect unresolved (backlog wins)
+# held-r3: blk-z3 archived unfinished ([ ]) -> expect unresolved
+{"id":"held-p1","blocked_by_ids":["blk-x1"],"unresolved_blocker_ids":[],"hold_bucket":"live","captain_actionable":true}
+{"id":"held-q2","blocked_by_ids":["blk-y2"],"unresolved_blocker_ids":["blk-y2"],"hold_bucket":"blocked","captain_actionable":false}
+{"id":"held-r3","blocked_by_ids":["blk-z3"],"unresolved_blocker_ids":["blk-z3"],"hold_bucket":"blocked","captain_actionable":false}
+
+### bearings
+decisions_open[1]{id,key,verb,summary,owner}:
+  held-p1,held-p1,captain-hold,"held on archived blocker: decide held-p1",(main)
+landed: []
+gates[3]{id,title,blocked_by,reason,owner,filed}:
+  held-q2,held on reopened blocker,blk-y2,"blocked-by blk-y2: decide held-q2",(main),2026-10-02
+  held-r3,held on queued-archived blocker,blk-z3,"blocked-by blk-z3: decide held-r3",(main),2026-10-02
+  blk-y2,blocker reopened later,"-","-",(main),2026-10-02
+reports: []
+
+### Lab 2 with configured archive file removed (missing archive must not break snapshot)
+exit=0
+{"id":"held-p1","unresolved_blocker_ids":["blk-x1"],"hold_bucket":"blocked"}

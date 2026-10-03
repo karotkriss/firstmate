@@ -1,0 +1,7 @@
+### BASE d719ef3: bin/fm-fleet-snapshot.sh --json (after tasks-axi prune archived blocker-a1)
+{"id":"held-b2","blocked_by_ids":["blocker-a1"],"unresolved_blocker_ids":["blocker-a1"],"hold_bucket":"blocked","captain_actionable":false}
+{"id":"dangling-c3","blocked_by_ids":["nowhere-z9"],"unresolved_blocker_ids":["nowhere-z9"],"hold_bucket":"blocked","captain_actionable":false}
+
+### FIX 673b2c7: bin/fm-fleet-snapshot.sh --json
+{"id":"held-b2","blocked_by_ids":["blocker-a1"],"unresolved_blocker_ids":[],"hold_bucket":"live","captain_actionable":true}
+{"id":"dangling-c3","blocked_by_ids":["nowhere-z9"],"unresolved_blocker_ids":["nowhere-z9"],"hold_bucket":"blocked","captain_actionable":false}
